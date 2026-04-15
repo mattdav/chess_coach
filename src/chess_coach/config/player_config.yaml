@@ -1,0 +1,18 @@
+# Configuration du joueur — chess_coach
+# Ce fichier centralise les informations personnelles du joueur.
+# Il est lu automatiquement par chess_coach au démarrage.
+# Les valeurs ici servent de défaut et peuvent être surchargées par les
+# arguments CLI (--player, --elo) ou les variables d'environnement
+# (PLAYER_NAME, PLAYER_ELO).
+
+# ---------------------------------------------------------------------------
+# Identité du joueur
+# ---------------------------------------------------------------------------
+player:
+  # Votre nom tel qu'il apparaît dans les headers PGN [White] / [Black].
+  # Correspondance partielle et insensible à la casse.
+  # Utilisé pour ne remonter que vos erreurs dans l'analyse.
+  name: "Daviaud"
+
+  # Votre Elo courant (pour calibrer la difficulté du plan Claude).
+  elo: 1700
