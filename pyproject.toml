@@ -8,20 +8,28 @@ authors = [
   {name = "Matthieu Daviaud", email = "matthieu.daviaud@gmail.com"},
 ]
 version = "0.1.0"
-description = "Assistant coach qui analyse mes parties d'échecs et me propose des ressources pour progresser"
+description = "Assistant coach qui analyse mes parties avec caissAI et génère un plan d'entraînement"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.13"
 dependencies = [
+    "anthropic>=0.40.0",
     "beartype>=0.22.9",
+    "httpx>=0.27.0",
+    "pandas>=2.0.0",
+    "pyarrow>=14.0.0",
+    "python-chess>=1.999",
+    "python-dotenv>=1.0.0",
+    "pyyaml>=6.0.2",
 ]
 
 [project.scripts]
-chess_coach = "src.chess_coach.__main__:main"
+chess_coach = "chess_coach.__main__:main"
 
 [project.optional-dependencies]
 dev = [
     "pytest-cov>=7.1.0",
+    "types-pyyaml>=6.0.12.20260408",
 ]
 docs = [
     "sphinx>=9.1.0",
@@ -30,6 +38,9 @@ docs = [
 lint = [
     "mypy>=1.20.0",
     "ruff>=0.15.10",
+]
+podcast = [
+    "podgenai>=0.17.2",
 ]
 
 [tool.ruff]
@@ -83,8 +94,15 @@ skip_empty = true
 python_version = "3.13"
 strict = true
 
+[[tool.mypy.overrides]]
+module = [
+    "chess.*",
+]
+ignore_missing_imports = true
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/chess_coach"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "src/chess_coach/py.typed" = "chess_coach/py.typed"
+"src/chess_coach/config/player_config.yaml" = "chess_coach/config/player_config.yaml"

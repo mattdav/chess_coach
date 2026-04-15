@@ -140,3 +140,4 @@ uv.lock
 src/chess_coach/data/
 src/chess_coach/log/
 src/chess_coach/config/
+work/
