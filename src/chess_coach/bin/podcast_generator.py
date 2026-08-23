@@ -20,6 +20,84 @@ from typing import Any
 
 from chess_coach.bin.coach import TrainingPlan
 
+# Modèle de texte utilisé par podgenai en interne (podgenai.util.openai.MODELS["text"]).
+# podgenai 0.17.2 pointe en dur vers un snapshot daté (ex. gpt-5.2-chat-latest)
+# qu'OpenAI finit par déprécier — sans correctif côté podgenai à ce jour.
+# Surchargeable via PODGENAI_TEXT_MODEL dans .env.
+_DEFAULT_PODGENAI_TEXT_MODEL = "gpt-5.6"
+
+# Paramètres connus comme non supportés pour certains modèles OpenAI récents
+# (modèles de raisonnement type gpt-5.x : temperature figée à la valeur par
+# défaut). podgenai maintient sa propre table pour les anciens modèles
+# (ex. "gpt-5.2-chat-": ("temperature",)) mais ne connaît pas encore les
+# modèles postérieurs à sa dernière publication — on comble ce trou ici,
+# par préfixe de nom de modèle, et le tout reste ajustable via ce dict.
+_KNOWN_UNSUPPORTED_KWARGS_BY_PREFIX: dict[str, tuple[str, ...]] = {
+    "gpt-5.6": ("temperature",),
+}
+
+
+def _configure_podgenai_model() -> None:
+    """Patch le modèle texte OpenAI utilisé par podgenai en interne.
+
+    podgenai code en dur son modèle de génération de texte dans
+    ``podgenai.util.openai.MODELS["text"]``, sans le rendre configurable.
+    Quand OpenAI déprécie ce snapshot (ce qui arrive périodiquement pour les
+    alias datés type ``-chat-latest``), les appels échouent avec une erreur
+    404 ``model_not_found`` jusqu'à ce que podgenai publie une mise à jour.
+
+    Cette fonction remplace le modèle par ``PODGENAI_TEXT_MODEL`` (.env) ou
+    ``_DEFAULT_PODGENAI_TEXT_MODEL`` à défaut. Elle fusionne également
+    ``_KNOWN_UNSUPPORTED_KWARGS_BY_PREFIX`` dans la table interne de podgenai
+    (``UNSUPPORTED_TEXT_MODEL_PREFIX_KWARGS``) avant de recalculer les kwargs
+    effectifs (``extra_text_model_kwargs``, ``unsupported_text_model_kwargs``),
+    car certains appels podgenai passent des kwargs figés en dur (ex.
+    ``temperature=0.5`` dans ``list_subtopics``) que seule cette table filtre
+    — sans cela, un modèle récent qui refuse ``temperature`` personnalisé
+    (comme les modèles de raisonnement gpt-5.x) échoue avec une erreur 400
+    ``unsupported_value``. Si la structure interne de podgenai a changé
+    (nouvelle version du paquet), le patch est ignoré silencieusement (avec
+    un warning) plutôt que de faire échouer la génération.
+    """
+    model = os.environ.get("PODGENAI_TEXT_MODEL", _DEFAULT_PODGENAI_TEXT_MODEL)
+    try:
+        import podgenai.util.openai as podgenai_openai
+
+        podgenai_openai.MODELS["text"] = model
+
+        merged_unsupported_prefixes = {
+            **podgenai_openai.UNSUPPORTED_TEXT_MODEL_PREFIX_KWARGS,
+            **_KNOWN_UNSUPPORTED_KWARGS_BY_PREFIX,
+        }
+        podgenai_openai.UNSUPPORTED_TEXT_MODEL_PREFIX_KWARGS = (
+            merged_unsupported_prefixes
+        )
+
+        podgenai_openai.extra_text_model_kwargs = {
+            kw: v
+            for prefix, kws in podgenai_openai.EXTRA_TEXT_MODEL_PREFIX_KWARGS.items()
+            if model.startswith(prefix)
+            for kw, v in kws.items()
+        }
+        podgenai_openai.unsupported_text_model_kwargs = {
+            kw
+            for prefix, kws in merged_unsupported_prefixes.items()
+            if model.startswith(prefix)
+            for kw in kws
+        }
+        logging.info(
+            "_configure_podgenai_model : modèle texte podgenai → %s "
+            "(kwargs non supportés : %s)",
+            model,
+            sorted(podgenai_openai.unsupported_text_model_kwargs) or "aucun",
+        )
+    except (ImportError, AttributeError) as exc:
+        logging.warning(
+            "_configure_podgenai_model : impossible de patcher le modèle "
+            "podgenai (structure interne inattendue) : %s",
+            exc,
+        )
+
 
 def _format_topic(raw_topic: str, elo: int) -> str:
     """Formate un sujet brut en topic podgenai contextualisé aux échecs.
@@ -124,6 +202,8 @@ def generate_podcasts(
         raise ImportError(
             "podgenai n'est pas installé. Lancer : uv pip install podgenai"
         ) from exc
+
+    _configure_podgenai_model()
 
     if not os.environ.get("OPENAI_API_KEY"):
         raise RuntimeError(

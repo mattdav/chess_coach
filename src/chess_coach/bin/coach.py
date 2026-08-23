@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 from dataclasses import asdict
 from typing import Any, TypedDict
 
@@ -16,6 +17,9 @@ Tu reçois le profil de faiblesses d'un joueur, annoté par le moteur caissAI
 actionnable et progressif.
 Réponds UNIQUEMENT en JSON valide selon le schéma fourni, sans markdown,
 sans commentaires."""
+
+# Modèle Claude par défaut, surchargeable via ANTHROPIC_MODEL dans .env.
+_DEFAULT_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-5")
 
 _client: anthropic.Anthropic | None = None
 
@@ -153,7 +157,7 @@ def generate_weekly_plan(
     profile: WeaknessProfile,
     player_elo: int,
     max_daily_minutes: int = 45,
-    model: str = "claude-sonnet-4-20250514",
+    model: str = _DEFAULT_MODEL,
     gm_studies: list[OpeningStudy] | None = None,
 ) -> TrainingPlan:
     """Génère un plan d'entraînement hebdomadaire personnalisé via Claude.
@@ -167,7 +171,8 @@ def generate_weekly_plan(
         profile: Profil de faiblesses construit par ``pattern_detector``.
         player_elo: Elo courant du joueur (pour calibrer la difficulté).
         max_daily_minutes: Durée maximale d'entraînement par jour.
-        model: Modèle Claude à utiliser.
+        model: Modèle Claude à utiliser. Défaut : ANTHROPIC_MODEL dans .env,
+            sinon "claude-sonnet-4-5".
         gm_studies: Études de parties de GM récupérées depuis la Masters API
             Lichess. Si fourni, enrich le prompt avec les exemples de GM.
 
@@ -227,10 +232,16 @@ def generate_weekly_plan(
 
     response = _get_client().messages.create(
         model=model,
-        max_tokens=2000,
+        max_tokens=4096,
         system=_COACH_SYSTEM,
         messages=[{"role": "user", "content": prompt}],
     )
+
+    if response.stop_reason == "max_tokens":
+        raise ValueError(
+            "Réponse Claude tronquée (max_tokens atteint) — augmenter "
+            "max_tokens dans generate_weekly_plan()."
+        )
 
     first_block = response.content[0]
     if not hasattr(first_block, "text"):

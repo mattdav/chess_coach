@@ -1,6 +1,7 @@
 """Orchestrateur de session de coaching."""
 
 import logging
+import os
 from pathlib import Path
 
 import chess.pgn
@@ -27,7 +28,7 @@ def run_session(
     max_podcasts: int = 3,
     dry_run: bool = False,
     generate_podcast: bool = False,
-    model: str = "claude-sonnet-4-20250514",
+    model: str = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-5"),
 ) -> tuple[WeaknessProfile, TrainingPlan | None]:
     """Exécute une session de coaching depuis des parties déjà annotées par caissAI.
 
@@ -53,7 +54,8 @@ def run_session(
         max_podcasts: Nombre maximum de podcasts à générer.
         dry_run: Extrait les erreurs sans appel Claude ni écriture SQLite.
         generate_podcast: Active la génération de podcasts podgenai.
-        model: Modèle Claude.
+        model: Modèle Claude. Défaut : ANTHROPIC_MODEL dans .env,
+            sinon "claude-sonnet-4-5".
 
     Returns:
         Tuple (WeaknessProfile, TrainingPlan | None).
