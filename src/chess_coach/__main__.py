@@ -60,6 +60,7 @@ def main() -> None:
             "Exemples :\n"
             '  chess_coach --pgn "C:/parties/mes parties.pgn" --list\n'
             '  chess_coach --pgn "C:/parties/mes parties.pgn" --games 3 7\n'
+            '  chess_coach --pgn "C:/parties/mes parties.pgn" --games 250:266\n'
             '  chess_coach --pgn "C:/parties/mes parties.pgn"'
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -77,11 +78,11 @@ def main() -> None:
         "--games",
         metavar="N",
         nargs="+",
-        type=int,
         default=None,
         help=(
-            "Indices 1-basés des parties à analyser. "
-            "Ex : --games 3  ou  --games 1 5 12. "
+            "Indices 1-basés des parties à analyser, isolés ou en plage. "
+            "Ex : --games 3  ou  --games 1 5 12  ou  --games 250:266 "
+            "(plage inclusive)  ou un mélange : --games 3 250:266. "
             "Sans cet argument, toutes les parties du fichier sont analysées. "
             "Utilisez --list pour connaître les indices."
         ),
@@ -193,19 +194,30 @@ def main() -> None:
     output_dir = Path(args.output_dir) if args.output_dir else data_path / "plans"
 
     # ── Sélection des parties ─────────────────────────────────────────────
-    from chess_coach.bin.pgn_collector import read_games_from_file, select_games
+    from chess_coach.bin.pgn_collector import (
+        parse_game_indices,
+        read_games_from_file,
+        select_games,
+    )
 
     all_games = read_games_from_file(pgn_path)
     if not all_games:
         parser.error(f"Aucune partie trouvée dans {pgn_path}")
 
-    selected = select_games(all_games, indices=args.games, player=args.player)
+    game_indices: list[int] | None = None
+    if args.games:
+        try:
+            game_indices = parse_game_indices(args.games)
+        except ValueError as exc:
+            parser.error(str(exc))
+
+    selected = select_games(all_games, indices=game_indices, player=args.player)
     if not selected:
         parser.error("Aucune partie ne correspond aux critères (--games / --player).")
 
     n_total = len(all_games)
     n_selected = len(selected)
-    suffix = f" (indices : {args.games})" if args.games else ""
+    suffix = f" (indices : {game_indices})" if game_indices else ""
     player_suffix = f" — joueur : {args.player}" if args.player else ""
     print(
         f"{n_selected}/{n_total} partie(s) sélectionnée(s)"
