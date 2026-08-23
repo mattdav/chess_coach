@@ -76,6 +76,9 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+docs/build/
+# Pages d'API générées par sphinx-apidoc à chaque `inv docs`
+docs/code/api/
 
 # PyBuilder
 .pybuilder/
@@ -134,7 +137,9 @@ cython_debug/
 # End of https://www.toptal.com/developers/gitignore/api/python
 
 # Lock files
-uv.lock
+# uv.lock est volontairement versionné : il garantit des installations
+# reproductibles depuis GitHub (uv tool install git+...), ce qui n'a de sens
+# que si les versions résolues sont figées dans le dépôt.
 
 # Utility files
 src/chess_coach/data/
