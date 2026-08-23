@@ -90,3 +90,42 @@ utilisant `AUTOINCREMENT`, filtrer explicitement les tables internes
 `sqlite_sequence` dans le résultat attendu — l'intention testée reste
 « mes tables métier existent », pas « SQLite gère bien son compteur
 interne ».
+
+## Un lint vert en local qui échoue en CI signale une dépendance à l'environnement, pas un faux positif
+
+**Symptôme** : deux échecs CI consécutifs au premier push, tous deux
+provenant d'étapes qui passaient localement.
+
+1. `okflint` — `[L002] README.md — broken markdown link: ../caissAI`
+2. `commitizen` — `No commit found with range: 'origin/main..HEAD'`
+
+**Fausse piste** : dans les deux cas, conclure que l'outil se trompe et
+chercher à le neutraliser — passer `broken_links` à `off` dans
+`okf-base.yaml`, ou retirer le job commitizen. Le remède aurait supprimé
+la détection sur tout le corpus documentaire pour un seul lien mal
+formé, et la validation du format de commit pour un seul intervalle mal
+calculé.
+
+**Cause racine** : commune aux deux — une hypothèse implicite sur
+l'environnement, vraie sur le poste de développement et fausse sur un
+runner.
+
+- `../caissAI` ne se résout que là où les deux dépôts sont clonés côte à
+  côte. En CI, seul `chess_coach` est cloné. Le lien était en réalité
+  cassé pour tout lecteur autre que son auteur : okflint avait raison.
+- Sur un `push`, le runner clone le dépôt après intégration du push, donc
+  `origin/main` et `HEAD` désignent le même commit et l'intervalle est
+  vide. `origin/main..HEAD` n'est valide que dans le contexte d'une pull
+  request.
+
+**Fix** : traiter tout décalage local/CI comme le signal d'une dépendance
+non déclarée à l'environnement local, et corriger la cause plutôt que de
+désactiver le contrôle — URL absolue pour toute référence sortant du
+dépôt, intervalle de commits dépendant de `github.event_name`. C'est la
+même logique que le `template-ci.yml` de `project_template`, qui génère
+depuis un clone frais et jamais depuis l'arbre de travail, précisément
+pour rendre ces hypothèses visibles.
+
+**Portée** : le correctif `ci.yml` a été reporté dans
+`project_template` — le bug venait du template et aurait contaminé tous
+les projets générés poussant directement sur `main`.
