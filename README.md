@@ -44,7 +44,7 @@ PGN annoté par caissAI
 | Outil | Rôle |
 | --- | --- |
 | [uv](https://docs.astral.sh/uv/) | Gestion des dépendances |
-| [caissAI](../caissAI) | Annotation des parties (doit être installé côte à côte) |
+| [caissAI](https://github.com/mattdav/caissAI) | Annotation des parties (doit être installé côte à côte) |
 | Clé [Anthropic](https://console.anthropic.com/settings/keys) | Génération du plan Claude |
 | Token [Lichess](https://lichess.org/account/oauth/token) | Parties de GM *(optionnel)* |
 | [ffmpeg](https://ffmpeg.org/download.html) | Podcasts *(optionnel)* |
@@ -56,8 +56,8 @@ PGN annoté par caissAI
 ## Installation
 
 ```bash
-git clone <url>/caissAI   ../caissAI   # les deux projets côte à côte
-git clone <url>/chess_coach
+git clone https://github.com/mattdav/caissAI ../caissAI   # les deux projets côte à côte
+git clone https://github.com/mattdav/chess_coach
 cd chess_coach
 uv sync
 ```
@@ -203,7 +203,6 @@ chess_coach/
 ├── pyproject.toml
 └── src/chess_coach/
     ├── __main__.py                   # CLI argparse
-    ├── main.py                       # (tombstone — remplacé par bin/session.py)
     ├── config/
     │   └── player_config.yaml        # Profil joueur (nom, elo, filtres)
     ├── bin/
@@ -241,9 +240,9 @@ chess_coach/
 ## Développement
 
 ```bash
-uv run ruff check src/
-uv run ruff format src/
-uv run mypy src/
+uv run inv lint    # ruff + mypy + markdownlint + prettier + okflint via pre-commit
+uv run inv test    # suite pytest + doctests
+uv run inv docs    # build Sphinx
 ```
 
 ---
