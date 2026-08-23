@@ -60,7 +60,7 @@ uv run mypy src/
 
 ## Architecture
 
-```
+```text
 chess_coach/
 ├── CLAUDE.md
 ├── pyproject.toml
@@ -92,7 +92,7 @@ chess_coach/
 
 ## Pipeline d'exécution
 
-```
+```text
 __main__.main()
     │
     ├── load_maia2_model()              # une seule fois

@@ -11,7 +11,7 @@
 
 chess_coach lit un fichier PGN de parties **déjà annotées par caissAI**, en extrait votre profil de faiblesses, puis génère un plan d'entraînement hebdomadaire actionnable via Claude (Anthropic).
 
-```
+```text
 PGN annoté par caissAI
         │
         ▼
@@ -135,7 +135,7 @@ chess_coach --pgn "C:/ChessBase/mes parties.pgn" --games 184 --dry-run
 
 À chaque session, chess_coach génère `data/plans/YYYY-MM-DD_plan.md` :
 
-```
+```text
 # Plan d'entraînement — 14 avril 2026
 
 **Joueur :** Dupont  |  **Elo :** 1650  |  **Thème :** Tactiques de milieu de jeu
@@ -181,7 +181,7 @@ Le FEN fourni dans les positions clés est celui **avant** le coup joué, ce qui
 
 ## Architecture
 
-```
+```text
 chess_coach/
 ├── .env                              # Secrets (jamais committé)
 ├── .env.example

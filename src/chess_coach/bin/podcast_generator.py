@@ -119,7 +119,7 @@ def generate_podcasts(
         True
     """
     try:
-        from podgenai import generate_media  # type: ignore[import-untyped]
+        from podgenai import generate_media
     except ImportError as exc:
         raise ImportError(
             "podgenai n'est pas installé. Lancer : uv pip install podgenai"

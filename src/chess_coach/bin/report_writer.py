@@ -73,6 +73,7 @@ def write_training_plan(
 # Sections
 # ---------------------------------------------------------------------------
 
+
 def _header(
     lines: list[str],
     plan: TrainingPlan,
@@ -85,9 +86,10 @@ def _header(
         "",
         "---",
         "",
-        f"| 👤 Joueur | 📊 Elo | 🗓️ Thème de la semaine |",
-        f"|---|---|---|",
-        f"| **{player_name or '—'}** | **{player_elo}** | {plan.get('week_theme', '')} |",
+        "| 👤 Joueur | 📊 Elo | 🗓️ Thème de la semaine |",
+        "|---|---|---|",
+        f"| **{player_name or '—'}** | **{player_elo}** | "
+        f"{plan.get('week_theme', '')} |",
         "",
     ]
 
@@ -109,7 +111,8 @@ def _analysis_summary(lines: list[str], profile: WeaknessProfile) -> None:
         f"| {_CATEGORY_ICON['blunder']} Gaffes | {cats.get('blunder', 0)} |",
         f"| {_CATEGORY_ICON['mistake']} Erreurs | {cats.get('mistake', 0)} |",
         f"| {_CATEGORY_ICON['dubious']} Coups douteux | {cats.get('dubious', 0)} |",
-        f"| Phase la plus faible | {phase_icon} **{profile['weakest_phase'].capitalize()}** |",
+        f"| Phase la plus faible | {phase_icon} "
+        f"**{profile['weakest_phase'].capitalize()}** |",
         "",
     ]
 
@@ -148,7 +151,8 @@ def _analysis_summary(lines: list[str], profile: WeaknessProfile) -> None:
         lines += [
             "### 🔎 Positions clés à retravailler",
             "",
-            "> Les FEN ci-dessous correspondent à la position **avant** le coup fautif.",
+            "> Les FEN ci-dessous correspondent à la position **avant** le "
+            "coup fautif.",
             "> Reproduisez-les sur un échiquier pour vous corriger.",
             "",
         ]
@@ -160,10 +164,11 @@ def _analysis_summary(lines: list[str], profile: WeaknessProfile) -> None:
                 f"#### Position {i} — coup {err.move_number}, "
                 f"{phase_icon} {err.phase.capitalize()}",
                 "",
-                f"| | |",
-                f"|---|---|",
+                "| | |",
+                "|---|---|",
                 f"| Coup joué | `{err.played}` → {icon} **{label}** |",
-                f"| Meilleur coup | `{err.best}`  |" if err.best
+                f"| Meilleur coup | `{err.best}`  |"
+                if err.best
                 else "| Meilleur coup | *non disponible* |",
             ]
             if err.comment:
@@ -230,9 +235,7 @@ def _weekly_plan(lines: list[str], plan: TrainingPlan) -> None:
         ]
 
 
-def _gm_studies(
-    lines: list[str], gm_studies: list[OpeningStudy] | None
-) -> None:
+def _gm_studies(lines: list[str], gm_studies: list[OpeningStudy] | None) -> None:
     if not gm_studies:
         return
 

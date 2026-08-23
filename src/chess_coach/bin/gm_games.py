@@ -1,7 +1,8 @@
 """Récupération de parties de grands maîtres via la Lichess Opening Explorer API.
 
 Endpoint : https://explorer.lichess.ovh/masters
-(Si hors service, fallback sur https://explorer.lichess.ovh/lichess avec ratings=2200,2500)
+(Si hors service, fallback sur https://explorer.lichess.ovh/lichess
+avec ratings=2200,2500)
 
 Stratégie FEN :
     Au lieu de naviguer coup par coup pour atteindre un ECO, on lit directement
@@ -14,9 +15,8 @@ import logging
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
-import chess
-import chess.pgn
 import httpx
 import pandas as pd
 
@@ -91,8 +91,10 @@ class OpeningStudy:
         lines = [f"Ouverture {self.eco} — {self.opening_name}"]
         for g in self.games:
             result_str = (
-                "1-0" if g.winner == "white"
-                else "0-1" if g.winner == "black"
+                "1-0"
+                if g.winner == "white"
+                else "0-1"
+                if g.winner == "black"
                 else "1/2-1/2"
             )
             lines.append(
@@ -136,7 +138,7 @@ def _get_fen_for_eco(eco: str, caissai_config_path: Path | None = None) -> str:
         FEN complet, ou chaîne vide si l'ECO est introuvable.
 
     Examples:
-        >>> _get_fen_for_eco("") 
+        >>> _get_fen_for_eco("")
         ''
     """
     global _eco_epd_cache
@@ -154,7 +156,11 @@ def _get_fen_for_eco(eco: str, caissai_config_path: Path | None = None) -> str:
     # Emplacement relatif depuis ce module (chess_coach/bin/ -> caissAI/config/)
     candidates += [
         Path(__file__).parent.parent.parent.parent.parent
-        / "caissAI" / "src" / "caissAI" / "config" / "lichess_eco.parquet",
+        / "caissAI"
+        / "src"
+        / "caissAI"
+        / "config"
+        / "lichess_eco.parquet",
     ]
 
     parquet_path: Path | None = None
@@ -201,9 +207,13 @@ def _query_explorer(
     Returns:
         Liste de GmGameRef sans PGN.
     """
-    winner_map: dict[str | None, str] = {"white": "white", "black": "black", None: "draw"}
+    winner_map: dict[str | None, str] = {
+        "white": "white",
+        "black": "black",
+        None: "draw",
+    }
 
-    def _parse_games(data: dict, eco_hint: str = "") -> list[GmGameRef]:
+    def _parse_games(data: dict[str, Any], eco_hint: str = "") -> list[GmGameRef]:
         opening_info = data.get("opening") or {}
         resolved_eco = opening_info.get("eco", eco_hint) or eco_hint
         resolved_name = opening_info.get("name", resolved_eco) or resolved_eco
@@ -214,15 +224,17 @@ def _query_explorer(
                 continue
             white_info = game.get("white") or {}
             black_info = game.get("black") or {}
-            refs.append(GmGameRef(
-                game_id=game_id,
-                white=white_info.get("name", "?"),
-                black=black_info.get("name", "?"),
-                year=game.get("year", 0),
-                winner=winner_map.get(game.get("winner"), "draw"),
-                eco=resolved_eco,
-                opening_name=resolved_name,
-            ))
+            refs.append(
+                GmGameRef(
+                    game_id=game_id,
+                    white=white_info.get("name", "?"),
+                    black=black_info.get("name", "?"),
+                    year=game.get("year", 0),
+                    winner=winner_map.get(game.get("winner"), "draw"),
+                    eco=resolved_eco,
+                    opening_name=resolved_name,
+                )
+            )
         return refs
 
     # Tentative 1 : /masters (avec token Lichess)
@@ -269,7 +281,9 @@ def _query_explorer(
         )
         if r2.status_code == 200:
             refs2 = _parse_games(r2.json())
-            logging.info("_query_explorer : %d partie(s) via /lichess fallback", len(refs2))
+            logging.info(
+                "_query_explorer : %d partie(s) via /lichess fallback", len(refs2)
+            )
             return refs2
         logging.warning("_query_explorer : /lichess HTTP %s", r2.status_code)
     except Exception as exc:
@@ -403,7 +417,9 @@ def fetch_opening_studies(
 
         print(f"    ECO {eco} ({opening_name}) — {error_count} erreur(s)...")
         refs = fetch_master_games_for_eco(
-            eco, opening_name, lichess_token,
+            eco,
+            opening_name,
+            lichess_token,
             max_games=max_games_per_opening,
             since_year=since_year,
             caissai_config_path=caissai_config_path,

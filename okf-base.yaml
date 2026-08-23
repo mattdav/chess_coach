@@ -1,0 +1,63 @@
+okf_version: "0.1"
+
+base:
+  name: "chess_coach"
+  roots:
+    - path: "."
+      exclude_patterns:
+        - ".venv/**"
+        - "src/**/data/**"
+  reserved_files:
+    index: "index.md"
+    log: "log.md"
+  status_field: "status"
+  link_resolution:
+    scope: base
+    external_refs: []
+
+profile:
+  date_fields: [created, updated]
+  types:
+    ProjectDescription:
+      required: [project]
+      optional: [updated, tags]
+
+    ProjectStandards:
+      required: [project]
+      optional: [updated, tags]
+
+    ProjectLifeCycle:
+      required: [project, status]
+      optional: [updated, tags]
+      status_values: [active, archived]
+
+    ProjectJournal:
+      required: [project]
+      optional: [updated, tags]
+
+    Command:
+      required: [description]
+      optional: [argument-hint]
+
+    Spec:
+      required: [id, title, description, status, timestamp, perimeter]
+      optional: [tags, audience, superseded-by, work-item]
+      status_values: [draft, accepted, implemented, superseded]
+
+    Fix:
+      required: [id, title, description, status, severity, timestamp, perimeter]
+      optional: [tags, audience, work-item]
+      status_values: [draft, confirmed, fixed, wontfix]
+      severity_values: [blocker, major, minor]
+
+    Plan:
+      required:
+        [id, title, description, status, implements, timestamp, perimeter]
+      optional: [tags, audience]
+      status_values: [draft, active, done, deprecated]
+
+hygiene:
+  broken_links: warn
+  split_candidates: warn
+  reserved_files: off
+  unknown_fields: off
