@@ -84,5 +84,25 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
-      - name: Validate commit messages
-        run: uv run cz check --rev-range origin/main..HEAD
+      - name: Validate commit messages (pull request)
+        if: github.event_name == 'pull_request'
+        run: uv run cz check --rev-range origin/${{ github.base_ref }}..HEAD
+
+      # Sur un push, origin/main pointe déjà sur le commit poussé : l'intervalle
+      # origin/main..HEAD serait vide. On compare donc à l'état précédent de la
+      # branche (github.event.before), en retombant sur la validation du dernier
+      # message seul quand cette base n'existe pas (premier push, force-push,
+      # ou historique tronqué).
+      - name: Validate commit messages (push)
+        if: github.event_name == 'push'
+        run: |
+          BEFORE="${{ github.event.before }}"
+          if [ -n "$BEFORE" ] \
+            && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] \
+            && git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
+            echo "Validation de la plage ${BEFORE}..HEAD"
+            uv run cz check --rev-range "${BEFORE}..HEAD"
+          else
+            echo "Pas de base comparable — validation du dernier commit seul."
+            uv run cz check --message "$(git log -1 --pretty=%B)"
+          fi
