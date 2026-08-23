@@ -140,3 +140,6 @@ uv.lock
 src/chess_coach/data/
 src/chess_coach/log/
 work/
+
+# .claude/progress.log est versionné malgré la règle générique *.log ci-dessus
+!.claude/progress.log

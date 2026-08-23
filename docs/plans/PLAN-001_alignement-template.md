@@ -3,7 +3,7 @@ type: Plan
 id: PLAN-001
 title: "Réalignement de chess_coach sur project_template"
 description: "Mode opératoire en 11 phases pour aligner l'outillage, la config, la documentation et CLAUDE.md sur project_template."
-status: draft
+status: done
 implements: SPEC-001
 tags: [python, tooling]
 timestamp: 2026-08-23
@@ -138,12 +138,14 @@ validée avant de passer à la suivante.
 
 ## Mise à jour documentaire
 
-- [ ] `README.md` mis à jour si le fonctionnement change (a priori non,
-      sauf retrait de la section Changelog déplacée vers `CHANGELOG.md`)
-- [ ] Statut de `SPEC-001` passé à `implemented`
-- [ ] `.claude/progress.log` complété en fin de chantier (résumé du
+- [ ] `README.md` mis à jour si le fonctionnement change — non applicable
+      ici (aucun changement fonctionnel de ce chantier) ; `README.md`
+      porte un diff pré-existant distinct, non lié à ce chantier, laissé
+      intact
+- [x] Statut de `SPEC-001` passé à `implemented`
+- [x] `.claude/progress.log` complété en fin de chantier (résumé du
       chantier)
-- [ ] `.claude/DECISIONS.md` et `.claude/LESSONS.md` complétés avec les
+- [x] `.claude/DECISIONS.md` et `.claude/LESSONS.md` complétés avec les
       décisions structurantes et pièges rencontrés pendant le chantier
 
 ## Vérification finale

@@ -1,0 +1,26 @@
+# Journal de progression — versionné, strictement append-only.
+# N'ajouter des entrées qu'à la fin ; ne jamais réécrire ni supprimer une entrée existante.
+
+## 2026-08-23 — Réalignement sur project_template (SPEC-001 / PLAN-001)
+
+- Rattachement au template via cruft, config/outillage manquants,
+  pyproject.toml et tasks.py alignés (phases 1-4, commits séparés).
+- docs/ restructuré : docs/source/ → docs/code/, ajout de docs/index.md
+  et docs/_templates/{spec,fix,plan}.md.
+- Contexte .claude/ reconstitué : rules/, commands/doc-new.md,
+  settings.json, DECISIONS.md/LESSONS.md/DECISIONS-archive.md peuplés,
+  progress.log versionné (résolution d'un conflit avec un .gitignore
+  pré-existant, tranché avec l'utilisateur).
+- okf-base.yaml nettoyé (clés mortes retirées, types commentés).
+- CI GitHub remplacée par ci.yml (lint + test + docs), lint.yml supprimé.
+- CLAUDE.md entièrement réécrit depuis le code source réel (l'ancienne
+  version décrivait une architecture obsolète : Lichess collector,
+  caissAI runtime, main.py — inexistants dans le code actuel).
+- Doublon src/chess_coach/bin/py.typed supprimé.
+- Validation finale : uv sync, inv lint (vert), inv test (3 échecs de
+  doctests pré-existants, indépendants de ce chantier), inv docs
+  (build Sphinx OK après ajout de l'extra docs), pre-commit --all-files
+  idempotent.
+- Non-objectifs confirmés hors périmètre : migration pydantic-settings,
+  écriture d'une suite de tests substantielle, correction du soupçon de
+  bug StopIteration dans _get_package_dir (non reproduit).

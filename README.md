@@ -1,3 +1,10 @@
+---
+type: ProjectDescription
+project: chess_coach
+updated: 2026-06-28
+tags: [python, chess, ai]
+---
+
 # chess_coach
 
 > Coach d'échecs IA — lit vos parties annotées par caissAI et génère un plan d'entraînement hebdomadaire personnalisé.
@@ -35,7 +42,7 @@ PGN annoté par caissAI
 ## Prérequis
 
 | Outil | Rôle |
-|---|---|
+| --- | --- |
 | [uv](https://docs.astral.sh/uv/) | Gestion des dépendances |
 | [caissAI](../caissAI) | Annotation des parties (doit être installé côte à côte) |
 | Clé [Anthropic](https://console.anthropic.com/settings/keys) | Génération du plan Claude |
@@ -63,14 +70,16 @@ cp .env.example .env
 ```
 
 | Variable | Obligatoire | Description |
-|---|---|---|
+| --- | --- | --- |
 | `ANTHROPIC_API_KEY` | Oui | Clé API Claude |
+| `ANTHROPIC_MODEL` | Non | Modèle Claude à utiliser (défaut : `claude-sonnet-4-5`) |
 | `LICHESS_TOKEN` | Recommandé | Token OAuth Lichess (parties de GM) |
 | `CAISSAI_CONFIG_PATH` | Non | Dossier `config/` de caissAI (détection auto) |
 | `PLAYER_NAME` | Non | Défaut pour `--player` |
 | `PLAYER_ELO` | Non | Défaut pour `--elo` |
+| `PODGENAI_TEXT_MODEL` | Non | Modèle OpenAI utilisé par podgenai pour générer les scripts de podcasts (défaut : `gpt-5.6`) |
 
-Générer le token Lichess (lecture seule, sans scope particulier) : **https://lichess.org/account/oauth/token**
+Générer le token Lichess (lecture seule, sans scope particulier) : **<https://lichess.org/account/oauth/token>**
 
 ### Configurer le profil joueur
 
@@ -103,6 +112,12 @@ chess_coach --pgn "C:/ChessBase/mes parties.pgn"
 # Parties sélectionnées par index (1-basé)
 chess_coach --pgn "C:/ChessBase/mes parties.pgn" --games 184 185 186
 
+# Plage consécutive (inclusive) — équivalent à --games 250 251 ... 266
+chess_coach --pgn "C:/ChessBase/mes parties.pgn" --games 250:266
+
+# Mélange d'indices isolés et de plages
+chess_coach --pgn "C:/ChessBase/mes parties.pgn" --games 3 250:266 300
+
 # Filtrer sur un joueur (erreurs de ce joueur uniquement)
 chess_coach --pgn "C:/ChessBase/mes parties.pgn" --player Dupont
 
@@ -116,9 +131,9 @@ chess_coach --pgn "C:/ChessBase/mes parties.pgn" --games 184 --dry-run
 ### Toutes les options
 
 | Option | Description |
-|---|---|
+| --- | --- |
 | `--pgn CHEMIN` | Fichier PGN annoté par caissAI *(obligatoire)* |
-| `--games N [N …]` | Indices 1-basés des parties à analyser |
+| `--games N [N …]` | Indices 1-basés des parties à analyser, isolés ou en plage `N:M` (ex. `250:266`) |
 | `--player NOM` | Filtre par joueur, ne remonte que ses erreurs |
 | `--list` | Liste numérotée des parties et quitte (sans clé API) |
 | `--elo N` | Elo courant (défaut : `player_config.yaml` → `PLAYER_ELO`) |
