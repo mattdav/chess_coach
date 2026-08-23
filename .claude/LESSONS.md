@@ -67,3 +67,26 @@ intention qui n'est pas la mienne à interpréter.
 chantier utilisateur déjà en cours (visible via un diff pré-existant non
 lié), toujours poser la question plutôt que d'arbitrer, même sous
 autorisation large à « tout terminer ».
+
+## AUTOINCREMENT crée une table sqlite_sequence qui apparaît dans sqlite_master
+
+**Symptôme** (FIX-001) : le doctest de `tracker.init_db` attendait
+`[('weekly_snapshots',), ('puzzle_sessions',)]` en interrogeant
+`sqlite_master`, mais obtenait en plus `('sqlite_sequence',)`.
+
+**Fausse piste** : chercher un bug dans le schéma (croire qu'une table
+non déclarée est créée par erreur) ou étendre le résultat attendu du
+doctest pour y inclure `sqlite_sequence`.
+
+**Cause racine** : dès qu'une table déclare
+`INTEGER PRIMARY KEY AUTOINCREMENT`, SQLite crée automatiquement une
+table interne `sqlite_sequence` pour suivre le compteur — visible dans
+`sqlite_master` comme n'importe quelle autre table. C'est un effet de
+bord documenté de SQLite, pas un défaut du schéma.
+
+**Fix** : quand un test interroge `sqlite_master` après un schéma
+utilisant `AUTOINCREMENT`, filtrer explicitement les tables internes
+(`WHERE type='table' AND name NOT LIKE 'sqlite_%'`) plutôt que de lister
+`sqlite_sequence` dans le résultat attendu — l'intention testée reste
+« mes tables métier existent », pas « SQLite gère bien son compteur
+interne ».

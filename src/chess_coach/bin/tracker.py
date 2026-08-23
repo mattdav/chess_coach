@@ -44,7 +44,10 @@ def init_db(db_path: str | Path = "chess_coach.db") -> sqlite3.Connection:
 
     Examples:
         >>> conn = init_db(":memory:")
-        >>> conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+        >>> conn.execute(
+        ...     "SELECT name FROM sqlite_master "
+        ...     "WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+        ... ).fetchall()
         [('weekly_snapshots',), ('puzzle_sessions',)]
         >>> conn.close()
     """

@@ -77,4 +77,9 @@ comportement runtime du programme (uniquement des doctests).
 
 ## Résolution
 
-À compléter au fil des commits de correction.
+1. **`tracker.init_db`** — corrigé. Le doctest filtre désormais
+   explicitement les tables internes SQLite
+   (`WHERE type='table' AND name NOT LIKE 'sqlite_%'`) plutôt que
+   d'ajouter `sqlite_sequence` au résultat attendu. Le schéma
+   (`AUTOINCREMENT`) est inchangé. Épisode consigné dans
+   `.claude/LESSONS.md`.
