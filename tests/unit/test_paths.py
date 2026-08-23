@@ -10,7 +10,7 @@ from chess_coach.bin.paths import (
     ensure_user_config,
     packaged_config_path,
     resolve_config_path,
-    resolve_dir,
+    resolve_path,
 )
 
 
@@ -28,33 +28,33 @@ def test_default_state_dir_repli_sur_home_sans_localappdata(
     assert default_state_dir().parts[-3:] == (".local", "share", "chess_coach")
 
 
-def test_resolve_dir_cli_prioritaire_sur_env(
+def test_resolve_path_cli_prioritaire_sur_env(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.setenv("CHESS_COACH_PLANS_DIR", str(tmp_path / "depuis_env"))
-    result = resolve_dir(
+    result = resolve_path(
         str(tmp_path / "depuis_cli"), "CHESS_COACH_PLANS_DIR", tmp_path / "defaut"
     )
     assert result == tmp_path / "depuis_cli"
 
 
-def test_resolve_dir_env_prioritaire_sur_defaut(
+def test_resolve_path_env_prioritaire_sur_defaut(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.setenv("CHESS_COACH_PLANS_DIR", str(tmp_path / "depuis_env"))
-    result = resolve_dir(None, "CHESS_COACH_PLANS_DIR", tmp_path / "defaut")
+    result = resolve_path(None, "CHESS_COACH_PLANS_DIR", tmp_path / "defaut")
     assert result == tmp_path / "depuis_env"
 
 
-def test_resolve_dir_defaut_quand_rien_de_defini(tmp_path: Path) -> None:
-    assert resolve_dir(None, "CHESS_COACH_PLANS_DIR", tmp_path / "d") == tmp_path / "d"
+def test_resolve_path_defaut_quand_rien_de_defini(tmp_path: Path) -> None:
+    assert resolve_path(None, "CHESS_COACH_PLANS_DIR", tmp_path / "d") == tmp_path / "d"
 
 
-def test_resolve_dir_ignore_une_valeur_env_vide(
+def test_resolve_path_ignore_une_valeur_env_vide(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.setenv("CHESS_COACH_PLANS_DIR", "   ")
-    assert resolve_dir(None, "CHESS_COACH_PLANS_DIR", tmp_path / "d") == tmp_path / "d"
+    assert resolve_path(None, "CHESS_COACH_PLANS_DIR", tmp_path / "d") == tmp_path / "d"
 
 
 def test_resolve_config_path_utilise_chess_coach_config(

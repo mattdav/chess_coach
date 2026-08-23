@@ -13,6 +13,7 @@ Variables reconnues :
     CHESS_COACH_PODCAST_DIR   MP3 générés par podgenai
     CHESS_COACH_LOG_DIR       Journal applicatif
     CHESS_COACH_CONFIG        Fichier player_config.yaml
+    CHESS_COACH_PGN           Fichier PGN analysé par défaut
 """
 
 import logging
@@ -40,8 +41,12 @@ def default_state_dir() -> Path:
     return Path.home() / ".local" / "share" / "chess_coach"
 
 
-def resolve_dir(cli_value: str | None, env_var: str, default: Path) -> Path:
-    """Résout un dossier selon la précédence CLI > environnement > défaut.
+def resolve_path(cli_value: str | None, env_var: str, default: Path) -> Path:
+    """Résout un chemin selon la précédence CLI > environnement > défaut.
+
+    S'applique indifféremment à un dossier ou à un fichier : la fonction
+    ne fait que choisir une valeur et normaliser ``~``, sans rien créer
+    ni vérifier l'existence.
 
     Args:
         cli_value: Valeur passée en argument CLI (prioritaire), ou None.
@@ -52,11 +57,11 @@ def resolve_dir(cli_value: str | None, env_var: str, default: Path) -> Path:
         Chemin résolu, avec ``~`` développé.
 
     Examples:
-        >>> resolve_dir("/tmp/cli", "UNSET_VAR_XYZ", Path("/tmp/def")).name
+        >>> resolve_path("/tmp/cli", "UNSET_VAR_XYZ", Path("/tmp/def")).name
         'cli'
-        >>> resolve_dir(None, "UNSET_VAR_XYZ", Path("/tmp/def")).name
+        >>> resolve_path(None, "UNSET_VAR_XYZ", Path("/tmp/def")).name
         'def'
-        >>> resolve_dir("", "UNSET_VAR_XYZ", Path("/tmp/def")).name
+        >>> resolve_path("", "UNSET_VAR_XYZ", Path("/tmp/def")).name
         'def'
     """
     if cli_value:
@@ -107,7 +112,7 @@ def resolve_config_path() -> Path:
     explicit = os.environ.get("CHESS_COACH_CONFIG", "").strip()
     if explicit:
         return Path(explicit).expanduser()
-    state_dir = resolve_dir(None, "CHESS_COACH_DATA_DIR", default_state_dir())
+    state_dir = resolve_path(None, "CHESS_COACH_DATA_DIR", default_state_dir())
     return state_dir / CONFIG_FILENAME
 
 

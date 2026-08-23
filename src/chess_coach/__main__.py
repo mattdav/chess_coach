@@ -9,7 +9,7 @@ from pathlib import Path
 
 from dotenv import find_dotenv, load_dotenv
 
-from chess_coach.bin.paths import default_state_dir, ensure_user_config, resolve_dir
+from chess_coach.bin.paths import default_state_dir, ensure_user_config, resolve_path
 
 
 def _get_package_dir(folder_name: str) -> Path:
@@ -63,19 +63,20 @@ def main() -> None:
             "Coach d'échecs IA — lit des parties déjà annotées par caissAI\n"
             "et génère un plan d'entraînement Claude.\n\n"
             "Exemples :\n"
-            '  chess_coach --pgn "C:/parties/mes parties.pgn" --list\n'
-            '  chess_coach --pgn "C:/parties/mes parties.pgn" --games 3 7\n'
-            '  chess_coach --pgn "C:/parties/mes parties.pgn" --games 250:266\n'
-            '  chess_coach --pgn "C:/parties/mes parties.pgn"'
+            "  chess_coach --list\n"
+            "  chess_coach --games 250:266 --podcast\n"
+            '  chess_coach --pgn "C:/parties/autres.pgn" --games 3 7\n'
+            "  chess_coach"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
         "--pgn",
         metavar="CHEMIN",
-        required=True,
+        default=None,
         help=(
             "Fichier PGN annoté par caissAI (peut contenir plusieurs parties). "
+            "Défaut : CHESS_COACH_PGN dans .env. "
             'Ex : --pgn "C:/ChessBase/mes parties.pgn"'
         ),
     )
@@ -161,8 +162,12 @@ def main() -> None:
     args = parser.parse_args()
 
     # ── Validation du fichier PGN ─────────────────────────────────────────
-    pgn_path = Path(args.pgn)
-    if not pgn_path.exists():
+    if not args.pgn and not os.environ.get("CHESS_COACH_PGN", "").strip():
+        parser.error(
+            "Aucun fichier PGN : passer --pgn ou définir CHESS_COACH_PGN dans .env."
+        )
+    pgn_path = resolve_path(args.pgn, "CHESS_COACH_PGN", Path())
+    if not pgn_path.is_file():
         parser.error(f"Fichier introuvable : {pgn_path}")
 
     # ── Mode --list : ne nécessite aucune clé API, on sort tôt ───────────
@@ -189,20 +194,20 @@ def main() -> None:
     # ── Logging et chemins runtime ────────────────────────────────────────
     # Précédence pour chaque dossier : argument CLI > variable .env > défaut.
     # Les défauts pointent hors du package installé (voir chess_coach.bin.paths).
-    state_dir = resolve_dir(None, "CHESS_COACH_DATA_DIR", default_state_dir())
+    state_dir = resolve_path(None, "CHESS_COACH_DATA_DIR", default_state_dir())
 
     try:
         default_log_dir = _get_package_dir("log")
     except NameError:
         default_log_dir = state_dir / "log"
-    log_path = resolve_dir(None, "CHESS_COACH_LOG_DIR", default_log_dir)
+    log_path = resolve_path(None, "CHESS_COACH_LOG_DIR", default_log_dir)
     _setup_logging(log_path)
 
     db_path = state_dir / "chess_coach.db"
-    output_dir = resolve_dir(
+    output_dir = resolve_path(
         args.output_dir, "CHESS_COACH_PLANS_DIR", state_dir / "plans"
     )
-    podcast_dir = resolve_dir(
+    podcast_dir = resolve_path(
         args.podcast_dir, "CHESS_COACH_PODCAST_DIR", output_dir / "podcasts"
     )
 

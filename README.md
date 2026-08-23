@@ -78,6 +78,7 @@ cp .env.example .env
 | `PLAYER_NAME` | Non | Défaut pour `--player` |
 | `PLAYER_ELO` | Non | Défaut pour `--elo` |
 | `PODGENAI_TEXT_MODEL` | Non | Modèle OpenAI utilisé par podgenai pour générer les scripts de podcasts (défaut : `gpt-5.6`) |
+| `CHESS_COACH_PGN` | Non | Fichier PGN analysé par défaut (rend `--pgn` optionnel) |
 | `CHESS_COACH_DATA_DIR` | Non | Dossier de la base SQLite (défaut : `%LOCALAPPDATA%\chess_coach`) |
 | `CHESS_COACH_PLANS_DIR` | Non | Dossier des plans Markdown générés |
 | `CHESS_COACH_PODCAST_DIR` | Non | Dossier des MP3 podgenai |
@@ -111,6 +112,10 @@ chess_coach --pgn "C:/ChessBase/mes parties.pgn" --list
 ### Lancer une session
 
 ```bash
+# Avec CHESS_COACH_PGN défini dans .env, --pgn devient inutile
+chess_coach --list
+chess_coach --games 250:266 --podcast
+
 # Toutes les parties du fichier
 chess_coach --pgn "C:/ChessBase/mes parties.pgn"
 
@@ -137,7 +142,7 @@ chess_coach --pgn "C:/ChessBase/mes parties.pgn" --games 184 --dry-run
 
 | Option | Description |
 | --- | --- |
-| `--pgn CHEMIN` | Fichier PGN annoté par caissAI *(obligatoire)* |
+| `--pgn CHEMIN` | Fichier PGN annoté par caissAI (défaut : `CHESS_COACH_PGN`) |
 | `--games N [N …]` | Indices 1-basés des parties à analyser, isolés ou en plage `N:M` (ex. `250:266`) |
 | `--player NOM` | Filtre par joueur, ne remonte que ses erreurs |
 | `--list` | Liste numérotée des parties et quitte (sans clé API) |
