@@ -3,7 +3,7 @@ type: Fix
 id: FIX-001
 title: "Trois doctests échouent sur uv run inv test"
 description: "tracker.init_db, pgn_collector.list_games et pgn_filter.matches échouent, indépendamment du réalignement template."
-status: confirmed
+status: fixed
 severity: major
 work-item:
 tags: [python, tests]
@@ -87,3 +87,12 @@ comportement runtime du programme (uniquement des doctests).
    après la ligne attendue dans le doctest, pour déclarer la ligne
    vide finale produite par `print(f"...\n")`. Le `\n` du code
    (séparateur voulu avant la liste des parties) est inchangé.
+3. **`pgn_filter.matches`** — corrigé, arbitrage tranché par
+   l'utilisateur : c'est le doctest qui avait tort. Le critère Elo
+   adversaire n'est exercé par le code que si `player_name` est
+   renseigné (nécessaire pour déterminer quel camp est
+   « l'adversaire ») ; le doctest teste désormais ce cas avec
+   `player_name="Dupont"`. Un cas explicite supplémentaire couvre le
+   comportement actuel du code sans `player_name` (`min_opponent_elo`
+   seul → critère silencieusement ignoré, `True`), pour que ce ne
+   soit plus un piège silencieux. Aucun changement de code.

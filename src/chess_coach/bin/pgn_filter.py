@@ -151,9 +151,13 @@ def matches(game: chess.pgn.Game, pgn_filter: PgnFilter) -> bool:
         False
         >>> matches(game, PgnFilter(date_from="2025.01.01"))
         False
-        >>> matches(game, PgnFilter(min_opponent_elo=1700))
+        >>> matches(game, PgnFilter(min_opponent_elo=1700, player_name="Dupont"))
         False
-        >>> matches(game, PgnFilter(min_opponent_elo=1600))
+        >>> matches(game, PgnFilter(min_opponent_elo=1600, player_name="Dupont"))
+        True
+        >>> # sans player_name, l'adversaire n'est pas déterminable : le
+        >>> # critère Elo est silencieusement ignoré.
+        >>> matches(game, PgnFilter(min_opponent_elo=1700))
         True
     """
     if not pgn_filter.is_active:
