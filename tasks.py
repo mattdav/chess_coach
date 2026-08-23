@@ -11,22 +11,36 @@ RELEASE_BRANCH = "main"  # branche de référence pour les releases
 CLEAN_DIRS: list[str] = [
     "build",  # Artéfacts de build
     "dist",  # Distributions packagées
+    "htmlcov",  # Rapport de couverture HTML (pytest-cov)
+    "docs/build",  # Build Sphinx
+    "docs/code/api",  # Pages d'API générées par sphinx-apidoc
     ".pytest_cache",  # Cache de pytest
-    ".coverage",  # Données de couverture
     ".ruff_cache",  # Cache de Ruff
-    ".mypy_cache",  # Cache de mypy (si utilisé)
+    ".mypy_cache",  # Cache de mypy
     "__pycache__",  # Cache Python (racine)
+]
+# Fichiers à supprimer séparément : rmtree échoue sur un fichier, et
+# ignore_errors=True masquerait l'échec sans rien nettoyer.
+CLEAN_FILES: list[str] = [
+    ".coverage",  # Données de couverture
+    "coverage.xml",  # Rapport de couverture XML
 ]
 
 
 @task
 def clean(c: Context) -> None:
-    """Remove build artifacts and caches."""
+    """Remove build artifacts, generated docs and caches."""
     for directory in CLEAN_DIRS:
         path: Path = Path(directory)
-        if path.exists():
-            print(f"  - Removing {directory}")
+        if path.is_dir():
+            print(f"  - Removing {directory}/")
             shutil.rmtree(path, ignore_errors=True)
+
+    for filename in CLEAN_FILES:
+        file_path = Path(filename)
+        if file_path.is_file():
+            print(f"  - Removing {filename}")
+            file_path.unlink(missing_ok=True)
 
     # Nettoyer récursivement les __pycache__
     for path in Path(".").rglob("__pycache__"):
@@ -100,10 +114,27 @@ def test(c: Context, verbose: bool = False, coverage: bool = True) -> None:
 
 @task
 def docs(c: Context, open_browser: bool = False) -> None:
-    """Build the Sphinx documentation as HTML."""
+    """Build the Sphinx documentation as HTML.
+
+    Les pages d'API sont (re)générées par sphinx-apidoc avant chaque build :
+    un nouveau module sous src/ est ainsi documenté sans qu'aucun fichier
+    .rst n'ait à être écrit ou maintenu à la main. Le dossier généré
+    (docs/code/api/) n'est pas versionné.
+    """
     src = Path("docs/code")
+    api = src / "api"
     out = Path("docs/build") / "html"
     out.mkdir(parents=True, exist_ok=True)
+
+    print("🗂️  Generating API pages (sphinx-apidoc)...")
+    apidoc = subprocess.run(
+        "uv run sphinx-apidoc --force --separate --module-first "
+        f'-o "{api}" src/chess_coach',
+        shell=True,
+    )
+    if apidoc.returncode != 0:
+        print("❌ sphinx-apidoc failed!")
+        raise SystemExit(apidoc.returncode)
 
     print("📖 Building Sphinx documentation...")
     result = subprocess.run(

@@ -13,8 +13,9 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath("../../src/chess_coach"))
-sys.path.insert(0, os.path.abspath("../.."))
+# Le package est exposé via src/ : c'est ce dossier qu'il faut ajouter au
+# path pour qu'autodoc puisse importer ``chess_coach`` et ses sous-modules.
+sys.path.insert(0, os.path.abspath("../../src"))
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -27,7 +28,17 @@ release = "0.1.0"
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ["sphinx.ext.githubpages", "sphinx.ext.autodoc"]
+extensions = [
+    "sphinx.ext.githubpages",
+    "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.viewcode",
+    "sphinx_autodoc_typehints",
+]
+
+# Docstrings au format Google (cf. .claude/rules/python-style.md)
+napoleon_google_docstring = True
+napoleon_numpy_docstring = False
 
 templates_path = ["_templates"]
 exclude_patterns = []
