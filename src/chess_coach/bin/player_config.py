@@ -13,6 +13,7 @@ from typing import Any
 
 import yaml
 
+from chess_coach.bin.paths import resolve_config_path
 from chess_coach.bin.pgn_filter import PgnFilter
 
 
@@ -36,8 +37,9 @@ def load_player_config(config_path: Path | None = None) -> PlayerConfig:
     """Charge la configuration joueur depuis ``player_config.yaml``.
 
     Args:
-        config_path: Chemin vers le fichier YAML. Si None, cherche dans
-            le dossier ``config/`` du package.
+        config_path: Chemin vers le fichier YAML. Si None, résout
+            l'emplacement utilisateur (``CHESS_COACH_CONFIG`` ou
+            ``CHESS_COACH_DATA_DIR``).
 
     Returns:
         :class:`PlayerConfig` rempli. Retourne des valeurs par défaut si
@@ -63,7 +65,7 @@ def load_player_config(config_path: Path | None = None) -> PlayerConfig:
         >>> tmp.unlink()
     """
     if config_path is None:
-        config_path = Path(__file__).parent.parent / "config" / "player_config.yaml"
+        config_path = resolve_config_path()
 
     if not config_path.exists():
         logging.info(
@@ -88,8 +90,9 @@ def load_pgn_filter_from_config(config_path: Path | None = None) -> PgnFilter:
     keywords) ainsi que le nom du joueur pour les construire en PgnFilter.
 
     Args:
-        config_path: Chemin vers le fichier YAML. Si None, cherche dans
-            le dossier ``config/`` du package.
+        config_path: Chemin vers le fichier YAML. Si None, résout
+            l'emplacement utilisateur (``CHESS_COACH_CONFIG`` ou
+            ``CHESS_COACH_DATA_DIR``).
 
     Returns:
         :class:`PgnFilter` prêt à l'emploi.
@@ -114,7 +117,7 @@ def load_pgn_filter_from_config(config_path: Path | None = None) -> PgnFilter:
         >>> tmp.unlink()
     """
     if config_path is None:
-        config_path = Path(__file__).parent.parent / "config" / "player_config.yaml"
+        config_path = resolve_config_path()
 
     if not config_path.exists():
         return PgnFilter()

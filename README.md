@@ -78,12 +78,17 @@ cp .env.example .env
 | `PLAYER_NAME` | Non | Défaut pour `--player` |
 | `PLAYER_ELO` | Non | Défaut pour `--elo` |
 | `PODGENAI_TEXT_MODEL` | Non | Modèle OpenAI utilisé par podgenai pour générer les scripts de podcasts (défaut : `gpt-5.6`) |
+| `CHESS_COACH_DATA_DIR` | Non | Dossier de la base SQLite (défaut : `%LOCALAPPDATA%\chess_coach`) |
+| `CHESS_COACH_PLANS_DIR` | Non | Dossier des plans Markdown générés |
+| `CHESS_COACH_PODCAST_DIR` | Non | Dossier des MP3 podgenai |
+| `CHESS_COACH_LOG_DIR` | Non | Dossier du journal applicatif |
+| `CHESS_COACH_CONFIG` | Non | Chemin de `player_config.yaml` (défaut : `<CHESS_COACH_DATA_DIR>/player_config.yaml`) |
 
 Générer le token Lichess (lecture seule, sans scope particulier) : **<https://lichess.org/account/oauth/token>**
 
 ### Configurer le profil joueur
 
-Éditez `src/chess_coach/config/player_config.yaml` pour y renseigner votre nom et votre Elo une bonne fois pour toutes :
+Au premier lancement, `chess_coach` copie le modèle de configuration livré avec le package vers `<CHESS_COACH_DATA_DIR>/player_config.yaml` (ou l'emplacement désigné par `CHESS_COACH_CONFIG`). Éditez **ce fichier-là**, pas celui du package : le vôtre n'est jamais écrasé par une mise à jour.
 
 ```yaml
 player:
@@ -139,9 +144,9 @@ chess_coach --pgn "C:/ChessBase/mes parties.pgn" --games 184 --dry-run
 | `--elo N` | Elo courant (défaut : `player_config.yaml` → `PLAYER_ELO`) |
 | `--max-minutes N` | Durée max d'entraînement/jour (défaut : 45) |
 | `--podcast` | Génère des podcasts podgenai |
-| `--podcast-dir CHEMIN` | Dossier de sortie des MP3 |
+| `--podcast-dir CHEMIN` | Dossier de sortie des MP3 (défaut : `CHESS_COACH_PODCAST_DIR`) |
 | `--max-podcasts N` | Nombre max de podcasts (défaut : 3) |
-| `--output-dir CHEMIN` | Dossier pour le plan Markdown et la base SQLite |
+| `--output-dir CHEMIN` | Dossier du plan Markdown (défaut : `CHESS_COACH_PLANS_DIR`) |
 | `--dry-run` | Extrait les erreurs sans appel Claude ni écriture SQLite |
 
 ---
@@ -210,6 +215,7 @@ chess_coach/
     │   ├── coach.py                  # Plan d'entraînement via Claude API
     │   ├── gm_games.py               # Parties GM via Lichess Explorer API
     │   ├── pattern_detector.py       # Agrégation → WeaknessProfile
+    │   ├── paths.py                  # Résolution des chemins runtime (.env)
     │   ├── pgn_collector.py          # Lecture PGN + select_games / list_games
     │   ├── pgn_filter.py             # Moteur de filtrage déclaratif
     │   ├── player_config.py          # Lecture player_config.yaml

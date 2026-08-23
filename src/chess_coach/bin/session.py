@@ -22,7 +22,7 @@ def run_session(
     lichess_token: str = "",
     caissai_config_path: Path | None = None,
     max_daily_minutes: int = 45,
-    db_path: str | Path = "src/chess_coach/data/chess_coach.db",
+    db_path: str | Path = "chess_coach.db",
     output_dir: Path | None = None,
     podcast_dir: Path | None = None,
     max_podcasts: int = 3,
@@ -44,13 +44,16 @@ def run_session(
         player_name: Nom du joueur pour filtrer ses erreurs (correspondance
             partielle). Si vide, toutes les erreurs sont remontées.
         max_daily_minutes: Durée max entraînement par jour (pour Claude).
-        db_path: Chemin vers la base SQLite.
+        db_path: Chemin vers la base SQLite. Normalement fourni par la CLI,
+            qui le résout depuis ``CHESS_COACH_DATA_DIR``.
         lichess_token: Token Lichess OAuth pour récupérer les parties GM
             (générer sur https://lichess.org/account/oauth/token).
             Si vide, l'étape parties GM est ignorée.
-        output_dir: Dossier de sortie pour le plan Markdown et les podcasts.
-            Si None, utilise ``src/chess_coach/data/plans/``.
-        podcast_dir: Dossier de sortie des MP3 podgenai (override output_dir).
+        output_dir: Dossier de sortie pour le plan Markdown. Normalement
+            fourni par la CLI, qui le résout depuis ``CHESS_COACH_PLANS_DIR``.
+            Si None, écrit dans ``plans/`` relatif au dossier courant.
+        podcast_dir: Dossier de sortie des MP3 podgenai. Si None, se place
+            sous ``output_dir/podcasts/``.
         max_podcasts: Nombre maximum de podcasts à générer.
         dry_run: Extrait les erreurs sans appel Claude ni écriture SQLite.
         generate_podcast: Active la génération de podcasts podgenai.
@@ -64,7 +67,7 @@ def run_session(
         print("Aucune partie fournie.")
         return build_weakness_profile([]), None
 
-    plans_dir = output_dir or Path("src/chess_coach/data/plans")
+    plans_dir = output_dir or Path("plans")
 
     # 1. Extraction des erreurs depuis les PGN annotés
     total = len(pgn_games)

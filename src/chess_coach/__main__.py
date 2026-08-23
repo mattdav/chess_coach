@@ -9,6 +9,8 @@ from pathlib import Path
 
 from dotenv import find_dotenv, load_dotenv
 
+from chess_coach.bin.paths import default_state_dir, ensure_user_config, resolve_dir
+
 
 def _get_package_dir(folder_name: str) -> Path:
     """Retourne le chemin absolu d'un sous-dossier du package.
@@ -46,7 +48,10 @@ def main() -> None:
     )
     load_dotenv(env_file)
 
-    # Chargement de la config joueur pour alimenter les défauts CLI
+    # Amorce la config utilisateur (copie du modèle packagé au 1er lancement)
+    # avant de la lire : elle alimente les défauts de --player et --elo.
+    ensure_user_config()
+
     from chess_coach.bin.player_config import load_player_config
 
     player_cfg = load_player_config()
@@ -120,7 +125,10 @@ def main() -> None:
         "--podcast-dir",
         default=None,
         metavar="CHEMIN",
-        help="Dossier de sortie des MP3 podgenai",
+        help=(
+            "Dossier de sortie des MP3 podgenai. "
+            "Défaut : CHESS_COACH_PODCAST_DIR dans .env."
+        ),
     )
     parser.add_argument(
         "--max-podcasts",
@@ -146,8 +154,8 @@ def main() -> None:
         default=None,
         metavar="CHEMIN",
         help=(
-            "Dossier de sortie pour le plan Markdown et les podcasts "
-            "(défaut : data/plans/)"
+            "Dossier de sortie pour le plan Markdown. "
+            "Défaut : CHESS_COACH_PLANS_DIR dans .env."
         ),
     )
     args = parser.parse_args()
@@ -179,19 +187,32 @@ def main() -> None:
         )
 
     # ── Logging et chemins runtime ────────────────────────────────────────
+    # Précédence pour chaque dossier : argument CLI > variable .env > défaut.
+    # Les défauts pointent hors du package installé (voir chess_coach.bin.paths).
+    state_dir = resolve_dir(None, "CHESS_COACH_DATA_DIR", default_state_dir())
+
     try:
-        log_path = _get_package_dir("log")
+        default_log_dir = _get_package_dir("log")
     except NameError:
-        log_path = Path("src/chess_coach/log")
+        default_log_dir = state_dir / "log"
+    log_path = resolve_dir(None, "CHESS_COACH_LOG_DIR", default_log_dir)
     _setup_logging(log_path)
 
-    try:
-        data_path = _get_package_dir("data")
-    except NameError:
-        data_path = Path("src/chess_coach/data")
+    db_path = state_dir / "chess_coach.db"
+    output_dir = resolve_dir(
+        args.output_dir, "CHESS_COACH_PLANS_DIR", state_dir / "plans"
+    )
+    podcast_dir = resolve_dir(
+        args.podcast_dir, "CHESS_COACH_PODCAST_DIR", output_dir / "podcasts"
+    )
 
-    db_path = data_path / "chess_coach.db"
-    output_dir = Path(args.output_dir) if args.output_dir else data_path / "plans"
+    logging.info(
+        "Chemins runtime — base : %s | plans : %s | podcasts : %s | logs : %s",
+        db_path,
+        output_dir,
+        podcast_dir,
+        log_path,
+    )
 
     # ── Sélection des parties ─────────────────────────────────────────────
     from chess_coach.bin.pgn_collector import (
@@ -239,7 +260,7 @@ def main() -> None:
             max_daily_minutes=args.max_minutes,
             db_path=db_path,
             output_dir=output_dir,
-            podcast_dir=Path(args.podcast_dir) if args.podcast_dir else None,
+            podcast_dir=podcast_dir,
             max_podcasts=args.max_podcasts,
             dry_run=args.dry_run,
             generate_podcast=args.podcast,
