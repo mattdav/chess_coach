@@ -24,3 +24,12 @@
 - Non-objectifs confirmés hors périmètre : migration pydantic-settings,
   écriture d'une suite de tests substantielle, correction du soupçon de
   bug StopIteration dans _get_package_dir (non reproduit).
+
+## Session du 2026-08-23 18:55 — chess_coach
+
+**Fichiers modifiés :**
+  - src/chess_coach/bin/pgn_collector.py
+  - src/chess_coach/bin/pgn_filter.py
+  - src/chess_coach/bin/tracker.py
+
+---
