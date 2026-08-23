@@ -81,6 +81,7 @@ def list_games(games: list[chess.pgn.Game]) -> None:
     Examples:
         >>> list_games([])
         0 partie(s) trouvée(s).
+        <BLANKLINE>
     """
     print(f"{len(games)} partie(s) trouvée(s).\n")
     for i, game in enumerate(games, start=1):

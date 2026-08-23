@@ -83,3 +83,7 @@ comportement runtime du programme (uniquement des doctests).
    d'ajouter `sqlite_sequence` au résultat attendu. Le schéma
    (`AUTOINCREMENT`) est inchangé. Épisode consigné dans
    `.claude/LESSONS.md`.
+2. **`pgn_collector.list_games`** — corrigé. Ajout de `<BLANKLINE>`
+   après la ligne attendue dans le doctest, pour déclarer la ligne
+   vide finale produite par `print(f"...\n")`. Le `\n` du code
+   (séparateur voulu avant la liste des parties) est inchangé.
