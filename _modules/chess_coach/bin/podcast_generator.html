@@ -1,0 +1,352 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>chess_coach.bin.podcast_generator &mdash; chess_coach 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            chess_coach
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/modules.html">chess_coach</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">chess_coach</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">chess_coach.bin.podcast_generator</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for chess_coach.bin.podcast_generator</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Génération de podcasts pédagogiques depuis le plan d&#39;entraînement.</span>
+
+<span class="sd">Utilise podgenai (``from podgenai import generate_media``) pour produire</span>
+<span class="sd">un MP3 d&#39;environ une heure par sujet identifié dans le ``TrainingPlan``.</span>
+
+<span class="sd">Les sujets sont extraits automatiquement du plan Claude : ``week_theme``</span>
+<span class="sd">et ``key_concepts`` constituent les topics envoyés à podgenai, enrichis</span>
+<span class="sd">d&#39;un préfixe contextuel pour focaliser le contenu sur les échecs.</span>
+
+<span class="sd">Prérequis :</span>
+<span class="sd">    - ``OPENAI_API_KEY`` dans l&#39;environnement (podgenai utilise OpenAI TTS)</span>
+<span class="sd">    - ``ffmpeg`` accessible dans le PATH</span>
+<span class="sd">    - ``pip install podgenai``</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">chess_coach.bin.coach</span><span class="w"> </span><span class="kn">import</span> <span class="n">TrainingPlan</span>
+
+<span class="c1"># Modèle de texte utilisé par podgenai en interne (podgenai.util.openai.MODELS[&quot;text&quot;]).</span>
+<span class="c1"># podgenai 0.17.2 pointe en dur vers un snapshot daté (ex. gpt-5.2-chat-latest)</span>
+<span class="c1"># qu&#39;OpenAI finit par déprécier — sans correctif côté podgenai à ce jour.</span>
+<span class="c1"># Surchargeable via PODGENAI_TEXT_MODEL dans .env.</span>
+<span class="n">_DEFAULT_PODGENAI_TEXT_MODEL</span> <span class="o">=</span> <span class="s2">&quot;gpt-5.6&quot;</span>
+
+<span class="c1"># Paramètres connus comme non supportés pour certains modèles OpenAI récents</span>
+<span class="c1"># (modèles de raisonnement type gpt-5.x : temperature figée à la valeur par</span>
+<span class="c1"># défaut). podgenai maintient sa propre table pour les anciens modèles</span>
+<span class="c1"># (ex. &quot;gpt-5.2-chat-&quot;: (&quot;temperature&quot;,)) mais ne connaît pas encore les</span>
+<span class="c1"># modèles postérieurs à sa dernière publication — on comble ce trou ici,</span>
+<span class="c1"># par préfixe de nom de modèle, et le tout reste ajustable via ce dict.</span>
+<span class="n">_KNOWN_UNSUPPORTED_KWARGS_BY_PREFIX</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;gpt-5.6&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;temperature&quot;</span><span class="p">,),</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_configure_podgenai_model</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Patch le modèle texte OpenAI utilisé par podgenai en interne.</span>
+
+<span class="sd">    podgenai code en dur son modèle de génération de texte dans</span>
+<span class="sd">    ``podgenai.util.openai.MODELS[&quot;text&quot;]``, sans le rendre configurable.</span>
+<span class="sd">    Quand OpenAI déprécie ce snapshot (ce qui arrive périodiquement pour les</span>
+<span class="sd">    alias datés type ``-chat-latest``), les appels échouent avec une erreur</span>
+<span class="sd">    404 ``model_not_found`` jusqu&#39;à ce que podgenai publie une mise à jour.</span>
+
+<span class="sd">    Cette fonction remplace le modèle par ``PODGENAI_TEXT_MODEL`` (.env) ou</span>
+<span class="sd">    ``_DEFAULT_PODGENAI_TEXT_MODEL`` à défaut. Elle fusionne également</span>
+<span class="sd">    ``_KNOWN_UNSUPPORTED_KWARGS_BY_PREFIX`` dans la table interne de podgenai</span>
+<span class="sd">    (``UNSUPPORTED_TEXT_MODEL_PREFIX_KWARGS``) avant de recalculer les kwargs</span>
+<span class="sd">    effectifs (``extra_text_model_kwargs``, ``unsupported_text_model_kwargs``),</span>
+<span class="sd">    car certains appels podgenai passent des kwargs figés en dur (ex.</span>
+<span class="sd">    ``temperature=0.5`` dans ``list_subtopics``) que seule cette table filtre</span>
+<span class="sd">    — sans cela, un modèle récent qui refuse ``temperature`` personnalisé</span>
+<span class="sd">    (comme les modèles de raisonnement gpt-5.x) échoue avec une erreur 400</span>
+<span class="sd">    ``unsupported_value``. Si la structure interne de podgenai a changé</span>
+<span class="sd">    (nouvelle version du paquet), le patch est ignoré silencieusement (avec</span>
+<span class="sd">    un warning) plutôt que de faire échouer la génération.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;PODGENAI_TEXT_MODEL&quot;</span><span class="p">,</span> <span class="n">_DEFAULT_PODGENAI_TEXT_MODEL</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">podgenai.util.openai</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">podgenai_openai</span>
+
+        <span class="n">podgenai_openai</span><span class="o">.</span><span class="n">MODELS</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span>
+
+        <span class="n">merged_unsupported_prefixes</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="o">**</span><span class="n">podgenai_openai</span><span class="o">.</span><span class="n">UNSUPPORTED_TEXT_MODEL_PREFIX_KWARGS</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">_KNOWN_UNSUPPORTED_KWARGS_BY_PREFIX</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">podgenai_openai</span><span class="o">.</span><span class="n">UNSUPPORTED_TEXT_MODEL_PREFIX_KWARGS</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">merged_unsupported_prefixes</span>
+        <span class="p">)</span>
+
+        <span class="n">podgenai_openai</span><span class="o">.</span><span class="n">extra_text_model_kwargs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">kw</span><span class="p">:</span> <span class="n">v</span>
+            <span class="k">for</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">kws</span> <span class="ow">in</span> <span class="n">podgenai_openai</span><span class="o">.</span><span class="n">EXTRA_TEXT_MODEL_PREFIX_KWARGS</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">kw</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kws</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+        <span class="n">podgenai_openai</span><span class="o">.</span><span class="n">unsupported_text_model_kwargs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">kw</span>
+            <span class="k">for</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">kws</span> <span class="ow">in</span> <span class="n">merged_unsupported_prefixes</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">kw</span> <span class="ow">in</span> <span class="n">kws</span>
+        <span class="p">}</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">&quot;_configure_podgenai_model : modèle texte podgenai → </span><span class="si">%s</span><span class="s2"> &quot;</span>
+            <span class="s2">&quot;(kwargs non supportés : </span><span class="si">%s</span><span class="s2">)&quot;</span><span class="p">,</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="nb">sorted</span><span class="p">(</span><span class="n">podgenai_openai</span><span class="o">.</span><span class="n">unsupported_text_model_kwargs</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;aucun&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">ImportError</span><span class="p">,</span> <span class="ne">AttributeError</span><span class="p">)</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s2">&quot;_configure_podgenai_model : impossible de patcher le modèle &quot;</span>
+            <span class="s2">&quot;podgenai (structure interne inattendue) : </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">exc</span><span class="p">,</span>
+        <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_format_topic</span><span class="p">(</span><span class="n">raw_topic</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">elo</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Formate un sujet brut en topic podgenai contextualisé aux échecs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        raw_topic: Sujet extrait du plan (ex: ``&quot;Les finales de tours&quot;``).</span>
+<span class="sd">        elo: Elo du joueur pour contextualiser le niveau.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Topic formaté pour podgenai.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; t = _format_topic(&quot;Les finales de tours&quot;, 1500)</span>
+<span class="sd">        &gt;&gt;&gt; &quot;échecs&quot; in t.lower()</span>
+<span class="sd">        True</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;Aux échecs, </span><span class="si">{</span><span class="n">raw_topic</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2"> &quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;— cours pédagogique pour un joueur de niveau </span><span class="si">{</span><span class="n">elo</span><span class="si">}</span><span class="s2"> Elo&quot;</span>
+    <span class="p">)</span>
+
+
+<div class="viewcode-block" id="extract_podcast_topics">
+<a class="viewcode-back" href="../../../api/chess_coach.bin.podcast_generator.html#chess_coach.bin.podcast_generator.extract_podcast_topics">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">extract_podcast_topics</span><span class="p">(</span>
+    <span class="n">plan</span><span class="p">:</span> <span class="n">TrainingPlan</span><span class="p">,</span>
+    <span class="n">player_elo</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">max_topics</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extrait les sujets pédagogiques prioritaires du plan d&#39;entraînement.</span>
+
+<span class="sd">    Sélectionne dans l&#39;ordre : le thème de la semaine, puis les concepts clés</span>
+<span class="sd">    jusqu&#39;à ``max_topics`` sujets au total.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        plan: Plan d&#39;entraînement généré par Claude.</span>
+<span class="sd">        player_elo: Elo du joueur (pour contextualiser les topics podgenai).</span>
+<span class="sd">        max_topics: Nombre maximum de podcasts à générer (défaut : 3).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Liste de topics formatés prêts pour podgenai.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; from chess_coach.bin.coach import TrainingPlan</span>
+<span class="sd">        &gt;&gt;&gt; plan: TrainingPlan = {</span>
+<span class="sd">        ...     &quot;week_theme&quot;: &quot;Finales de tours&quot;,</span>
+<span class="sd">        ...     &quot;daily_tasks&quot;: [],</span>
+<span class="sd">        ...     &quot;key_concepts&quot;: [&quot;Opposition&quot;, &quot;Zugzwang&quot;, &quot;Rook endings&quot;],</span>
+<span class="sd">        ...     &quot;success_metrics&quot;: &quot;70% de réussite&quot;,</span>
+<span class="sd">        ... }</span>
+<span class="sd">        &gt;&gt;&gt; topics = extract_podcast_topics(plan, player_elo=1500, max_topics=2)</span>
+<span class="sd">        &gt;&gt;&gt; len(topics)</span>
+<span class="sd">        2</span>
+<span class="sd">        &gt;&gt;&gt; &quot;finales de tours&quot; in topics[0].lower()</span>
+<span class="sd">        True</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">candidates</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">week_theme</span> <span class="o">=</span> <span class="n">plan</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;week_theme&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">week_theme</span><span class="p">:</span>
+        <span class="n">candidates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_format_topic</span><span class="p">(</span><span class="n">week_theme</span><span class="p">,</span> <span class="n">player_elo</span><span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">concept</span> <span class="ow">in</span> <span class="n">plan</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;key_concepts&quot;</span><span class="p">,</span> <span class="p">[]):</span>
+        <span class="k">if</span> <span class="n">concept</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+            <span class="n">candidates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_format_topic</span><span class="p">(</span><span class="n">concept</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="n">player_elo</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">candidates</span><span class="p">[:</span><span class="n">max_topics</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="generate_podcasts">
+<a class="viewcode-back" href="../../../api/chess_coach.bin.podcast_generator.html#chess_coach.bin.podcast_generator.generate_podcasts">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">generate_podcasts</span><span class="p">(</span>
+    <span class="n">plan</span><span class="p">:</span> <span class="n">TrainingPlan</span><span class="p">,</span>
+    <span class="n">player_elo</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">max_topics</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="n">max_sections</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Génère des podcasts MP3 depuis les sujets du plan d&#39;entraînement.</span>
+
+<span class="sd">    Appelle ``podgenai.generate_media`` pour chaque sujet. Les fichiers MP3</span>
+<span class="sd">    sont écrits dans ``output_dir`` avec un nom auto-déterminé par podgenai.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        plan: Plan d&#39;entraînement généré par Claude.</span>
+<span class="sd">        player_elo: Elo du joueur (pour contextualiser les topics).</span>
+<span class="sd">        output_dir: Dossier de sortie pour les MP3 (doit exister).</span>
+<span class="sd">        max_topics: Nombre maximum de podcasts à générer (défaut : 3).</span>
+<span class="sd">        max_sections: Nombre maximum de sections podgenai par podcast.</span>
+<span class="sd">            None = pas de limite (durée ~1h). Valeur entre 3 et 100.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Liste des chemins MP3 générés avec succès.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ImportError: Si podgenai n&#39;est pas installé.</span>
+<span class="sd">        RuntimeError: Si ``OPENAI_API_KEY`` est absent de l&#39;environnement.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; callable(generate_podcasts)</span>
+<span class="sd">        True</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">podgenai</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_media</span>
+    <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+            <span class="s2">&quot;podgenai n&#39;est pas installé. Lancer : uv pip install podgenai&quot;</span>
+        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+
+    <span class="n">_configure_podgenai_model</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;OPENAI_API_KEY&quot;</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+            <span class="s2">&quot;OPENAI_API_KEY absent de l&#39;environnement. &quot;</span>
+            <span class="s2">&quot;Requis par podgenai pour la génération TTS.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">topics</span> <span class="o">=</span> <span class="n">extract_podcast_topics</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="n">player_elo</span><span class="p">,</span> <span class="n">max_topics</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">topics</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;generate_podcasts : aucun sujet extrait du plan.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="n">generated</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">topic</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">topics</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Podcast </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">topics</span><span class="p">)</span><span class="si">}</span><span class="s2"> : </span><span class="si">{</span><span class="n">topic</span><span class="p">[:</span><span class="mi">70</span><span class="p">]</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;output_path&quot;</span><span class="p">:</span> <span class="n">output_dir</span><span class="p">}</span>
+            <span class="k">if</span> <span class="n">max_sections</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;max_sections&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_sections</span>
+
+            <span class="n">result</span> <span class="o">=</span> <span class="n">generate_media</span><span class="p">(</span><span class="n">topic</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;generate_podcasts : génération échouée pour &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span><span class="p">,</span> <span class="n">topic</span>
+                <span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;    ✗ Échec (podgenai a retourné None)&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">mp3_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+                <span class="n">generated</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mp3_path</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    ✓ </span><span class="si">{</span><span class="n">mp3_path</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;generate_podcasts : podcast généré → </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">mp3_path</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;generate_podcasts : erreur pour &#39;</span><span class="si">%s</span><span class="s2">&#39; : </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">topic</span><span class="p">,</span> <span class="n">exc</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    ✗ Erreur : </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">generated</span><span class="p">)</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">topics</span><span class="p">)</span><span class="si">}</span><span class="s2"> podcast(s) générés dans </span><span class="si">{</span><span class="n">output_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">generated</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Matthieu Daviaud.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

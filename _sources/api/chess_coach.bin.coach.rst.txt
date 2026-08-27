@@ -1,0 +1,7 @@
+chess\_coach.bin.coach module
+=============================
+
+.. automodule:: chess_coach.bin.coach
+   :members:
+   :show-inheritance:
+   :undoc-members:

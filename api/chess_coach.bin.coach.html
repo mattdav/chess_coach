@@ -1,0 +1,271 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>chess_coach.bin.coach module &mdash; chess_coach 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="chess_coach.bin.gm_games module" href="chess_coach.bin.gm_games.html" />
+    <link rel="prev" title="chess_coach.bin.analyzer module" href="chess_coach.bin.analyzer.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            chess_coach
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">chess_coach</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="chess_coach.html">chess_coach package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="chess_coach.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="chess_coach.bin.html">chess_coach.bin package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="chess_coach.config.html">chess_coach.config package</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">chess_coach</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">chess_coach</a></li>
+          <li class="breadcrumb-item"><a href="chess_coach.html">chess_coach package</a></li>
+          <li class="breadcrumb-item"><a href="chess_coach.bin.html">chess_coach.bin package</a></li>
+      <li class="breadcrumb-item active">chess_coach.bin.coach module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/chess_coach.bin.coach.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-chess_coach.bin.coach">
+<span id="chess-coach-bin-coach-module"></span><h1>chess_coach.bin.coach module<a class="headerlink" href="#module-chess_coach.bin.coach" title="Link to this heading"></a></h1>
+<p>Génération du plan d’entraînement hebdomadaire via l’API Claude.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="chess_coach.bin.coach.DailyExercise">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">chess_coach.bin.coach.</span></span><span class="sig-name descname"><span class="pre">DailyExercise</span></span><a class="reference internal" href="../_modules/chess_coach/bin/coach.html#DailyExercise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chess_coach.bin.coach.DailyExercise" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">TypedDict</span></code></p>
+<p>Exercice individuel dans une journée d’entraînement.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ex</span><span class="p">:</span> <span class="n">DailyExercise</span> <span class="o">=</span> <span class="p">{</span>
+<span class="gp">... </span>    <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;puzzles&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;Tactiques sur le thème de la fourchette&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s2">&quot;duration_min&quot;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s2">&quot;lichess_url&quot;</span><span class="p">:</span> <span class="s2">&quot;https://lichess.org/training/fork&quot;</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ex</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span>
+<span class="go">&#39;puzzles&#39;</span>
+</pre></div>
+</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.coach.DailyExercise.description">
+<span class="sig-name descname"><span class="pre">description</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#chess_coach.bin.coach.DailyExercise.description" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.coach.DailyExercise.duration_min">
+<span class="sig-name descname"><span class="pre">duration_min</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#chess_coach.bin.coach.DailyExercise.duration_min" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.coach.DailyExercise.lichess_url">
+<span class="sig-name descname"><span class="pre">lichess_url</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#chess_coach.bin.coach.DailyExercise.lichess_url" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.coach.DailyExercise.type">
+<span class="sig-name descname"><span class="pre">type</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#chess_coach.bin.coach.DailyExercise.type" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="chess_coach.bin.coach.DailyTask">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">chess_coach.bin.coach.</span></span><span class="sig-name descname"><span class="pre">DailyTask</span></span><a class="reference internal" href="../_modules/chess_coach/bin/coach.html#DailyTask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chess_coach.bin.coach.DailyTask" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">TypedDict</span></code></p>
+<p>Programme d’une journée d’entraînement.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">task</span><span class="p">:</span> <span class="n">DailyTask</span> <span class="o">=</span> <span class="p">{</span>
+<span class="gp">... </span>    <span class="s2">&quot;day&quot;</span><span class="p">:</span> <span class="s2">&quot;Lundi&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s2">&quot;focus&quot;</span><span class="p">:</span> <span class="s2">&quot;Tactiques&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s2">&quot;exercises&quot;</span><span class="p">:</span> <span class="p">[],</span>
+<span class="gp">... </span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">task</span><span class="p">[</span><span class="s2">&quot;day&quot;</span><span class="p">]</span>
+<span class="go">&#39;Lundi&#39;</span>
+</pre></div>
+</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.coach.DailyTask.day">
+<span class="sig-name descname"><span class="pre">day</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#chess_coach.bin.coach.DailyTask.day" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.coach.DailyTask.exercises">
+<span class="sig-name descname"><span class="pre">exercises</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#chess_coach.bin.coach.DailyExercise" title="chess_coach.bin.coach.DailyExercise"><span class="pre">DailyExercise</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#chess_coach.bin.coach.DailyTask.exercises" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.coach.DailyTask.focus">
+<span class="sig-name descname"><span class="pre">focus</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#chess_coach.bin.coach.DailyTask.focus" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="chess_coach.bin.coach.TrainingPlan">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">chess_coach.bin.coach.</span></span><span class="sig-name descname"><span class="pre">TrainingPlan</span></span><a class="reference internal" href="../_modules/chess_coach/bin/coach.html#TrainingPlan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chess_coach.bin.coach.TrainingPlan" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">TypedDict</span></code></p>
+<p>Plan d’entraînement hebdomadaire généré par Claude.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">plan</span><span class="p">:</span> <span class="n">TrainingPlan</span> <span class="o">=</span> <span class="p">{</span>
+<span class="gp">... </span>    <span class="s2">&quot;week_theme&quot;</span><span class="p">:</span> <span class="s2">&quot;Maîtriser les finales de tours&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s2">&quot;daily_tasks&quot;</span><span class="p">:</span> <span class="p">[],</span>
+<span class="gp">... </span>    <span class="s2">&quot;key_concepts&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;Opposition&quot;</span><span class="p">,</span> <span class="s2">&quot;Zugzwang&quot;</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="s2">&quot;success_metrics&quot;</span><span class="p">:</span> <span class="s2">&quot;Taux de réussite puzzles &gt; 70%&quot;</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plan</span><span class="p">[</span><span class="s2">&quot;week_theme&quot;</span><span class="p">]</span>
+<span class="go">&#39;Maîtriser les finales de tours&#39;</span>
+</pre></div>
+</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.coach.TrainingPlan.daily_tasks">
+<span class="sig-name descname"><span class="pre">daily_tasks</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#chess_coach.bin.coach.DailyTask" title="chess_coach.bin.coach.DailyTask"><span class="pre">DailyTask</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#chess_coach.bin.coach.TrainingPlan.daily_tasks" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.coach.TrainingPlan.key_concepts">
+<span class="sig-name descname"><span class="pre">key_concepts</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#chess_coach.bin.coach.TrainingPlan.key_concepts" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.coach.TrainingPlan.success_metrics">
+<span class="sig-name descname"><span class="pre">success_metrics</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#chess_coach.bin.coach.TrainingPlan.success_metrics" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.coach.TrainingPlan.week_theme">
+<span class="sig-name descname"><span class="pre">week_theme</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#chess_coach.bin.coach.TrainingPlan.week_theme" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chess_coach.bin.coach.generate_weekly_plan">
+<span class="sig-prename descclassname"><span class="pre">chess_coach.bin.coach.</span></span><span class="sig-name descname"><span class="pre">generate_weekly_plan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">profile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">player_elo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_daily_minutes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">45</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'claude-sonnet-4-5'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gm_studies</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chess_coach/bin/coach.html#generate_weekly_plan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chess_coach.bin.coach.generate_weekly_plan" title="Link to this definition"></a></dt>
+<dd><p>Génère un plan d’entraînement hebdomadaire personnalisé via Claude.</p>
+<p>Le prompt envoie à Claude :
+- Les statistiques agrégées (ACPL, phase faible, ventilation erreurs)
+- Les 10 pires positions avec leur commentaire caissAI
+- Les études de parties de GM pour les ouvertures problématiques</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>profile</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="chess_coach.bin.pattern_detector.html#chess_coach.bin.pattern_detector.WeaknessProfile" title="chess_coach.bin.pattern_detector.WeaknessProfile"><code class="xref py py-class docutils literal notranslate"><span class="pre">WeaknessProfile</span></code></a></span>) – Profil de faiblesses construit par <code class="docutils literal notranslate"><span class="pre">pattern_detector</span></code>.</p></li>
+<li><p><strong>player_elo</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Elo courant du joueur (pour calibrer la difficulté).</p></li>
+<li><p><strong>max_daily_minutes</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Durée maximale d’entraînement par jour.</p></li>
+<li><p><strong>model</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Modèle Claude à utiliser. Défaut : ANTHROPIC_MODEL dans .env,
+sinon “claude-sonnet-4-5”.</p></li>
+<li><p><strong>gm_studies</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<a class="reference internal" href="chess_coach.bin.gm_games.html#chess_coach.bin.gm_games.OpeningStudy" title="chess_coach.bin.gm_games.OpeningStudy"><code class="xref py py-class docutils literal notranslate"><span class="pre">OpeningStudy</span></code></a>] | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Études de parties de GM récupérées depuis la Masters API
+Lichess. Si fourni, enrich le prompt avec les exemples de GM.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#chess_coach.bin.coach.TrainingPlan" title="chess_coach.bin.coach.TrainingPlan"><code class="xref py py-class docutils literal notranslate"><span class="pre">TrainingPlan</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Plan d’entraînement structuré sur 7 jours.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>anthropic.APIError</strong> – En cas d’erreur API Claude.</p></li>
+<li><p><strong>json.JSONDecodeError</strong> – Si Claude retourne du JSON invalide.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">isinstance</span><span class="p">(</span><span class="n">_PLAN_SCHEMA</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="chess_coach.bin.analyzer.html" class="btn btn-neutral float-left" title="chess_coach.bin.analyzer module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="chess_coach.bin.gm_games.html" class="btn btn-neutral float-right" title="chess_coach.bin.gm_games module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Matthieu Daviaud.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

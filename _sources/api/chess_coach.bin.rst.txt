@@ -1,0 +1,26 @@
+chess\_coach.bin package
+========================
+
+.. automodule:: chess_coach.bin
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   chess_coach.bin.analyzer
+   chess_coach.bin.coach
+   chess_coach.bin.gm_games
+   chess_coach.bin.paths
+   chess_coach.bin.pattern_detector
+   chess_coach.bin.pgn_collector
+   chess_coach.bin.pgn_filter
+   chess_coach.bin.player_config
+   chess_coach.bin.podcast_generator
+   chess_coach.bin.report_writer
+   chess_coach.bin.session
+   chess_coach.bin.tracker

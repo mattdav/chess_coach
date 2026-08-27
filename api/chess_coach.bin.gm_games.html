@@ -1,0 +1,345 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>chess_coach.bin.gm_games module &mdash; chess_coach 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="chess_coach.bin.paths module" href="chess_coach.bin.paths.html" />
+    <link rel="prev" title="chess_coach.bin.coach module" href="chess_coach.bin.coach.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            chess_coach
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">chess_coach</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="chess_coach.html">chess_coach package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="chess_coach.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="chess_coach.bin.html">chess_coach.bin package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="chess_coach.config.html">chess_coach.config package</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">chess_coach</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">chess_coach</a></li>
+          <li class="breadcrumb-item"><a href="chess_coach.html">chess_coach package</a></li>
+          <li class="breadcrumb-item"><a href="chess_coach.bin.html">chess_coach.bin package</a></li>
+      <li class="breadcrumb-item active">chess_coach.bin.gm_games module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/chess_coach.bin.gm_games.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-chess_coach.bin.gm_games">
+<span id="chess-coach-bin-gm-games-module"></span><h1>chess_coach.bin.gm_games module<a class="headerlink" href="#module-chess_coach.bin.gm_games" title="Link to this heading"></a></h1>
+<p>Récupération de parties de grands maîtres via la Lichess Opening Explorer API.</p>
+<p>Endpoint : <a class="reference external" href="https://explorer.lichess.ovh/masters">https://explorer.lichess.ovh/masters</a>
+(Si hors service, fallback sur <a class="reference external" href="https://explorer.lichess.ovh/lichess">https://explorer.lichess.ovh/lichess</a>
+avec ratings=2200,2500)</p>
+<dl class="simple">
+<dt>Stratégie FEN :</dt><dd><p>Au lieu de naviguer coup par coup pour atteindre un ECO, on lit directement
+l’EPD correspondant depuis lichess_eco.parquet (déjà présent dans caissAI).
+L’EPD est converti en FEN complet et passé directement à l’API.
+Cela élimine la navigation et garantit d’atteindre la bonne position.</p>
+</dd>
+</dl>
+<dl class="py class">
+<dt class="sig sig-object py" id="chess_coach.bin.gm_games.GmGameRef">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">chess_coach.bin.gm_games.</span></span><span class="sig-name descname"><span class="pre">GmGameRef</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">game_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">white</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">black</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">year</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">winner</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eco</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opening_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pgn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chess_coach/bin/gm_games.html#GmGameRef"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chess_coach.bin.gm_games.GmGameRef" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Référence à une partie de grand maître.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ref</span> <span class="o">=</span> <span class="n">GmGameRef</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">game_id</span><span class="o">=</span><span class="s2">&quot;abc123&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">white</span><span class="o">=</span><span class="s2">&quot;Carlsen, Magnus&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">black</span><span class="o">=</span><span class="s2">&quot;Nepomniachtchi, Ian&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">year</span><span class="o">=</span><span class="mi">2021</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">winner</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">eco</span><span class="o">=</span><span class="s2">&quot;B30&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">opening_name</span><span class="o">=</span><span class="s2">&quot;Sicilian Defense&quot;</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ref</span><span class="o">.</span><span class="n">game_id</span>
+<span class="go">&#39;abc123&#39;</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="chess_coach.bin.gm_games.GmGameRef.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">game_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">white</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">black</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">year</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">winner</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eco</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opening_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pgn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chess_coach.bin.gm_games.GmGameRef.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.gm_games.GmGameRef.black">
+<span class="sig-name descname"><span class="pre">black</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#chess_coach.bin.gm_games.GmGameRef.black" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.gm_games.GmGameRef.eco">
+<span class="sig-name descname"><span class="pre">eco</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#chess_coach.bin.gm_games.GmGameRef.eco" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.gm_games.GmGameRef.game_id">
+<span class="sig-name descname"><span class="pre">game_id</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#chess_coach.bin.gm_games.GmGameRef.game_id" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.gm_games.GmGameRef.opening_name">
+<span class="sig-name descname"><span class="pre">opening_name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#chess_coach.bin.gm_games.GmGameRef.opening_name" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.gm_games.GmGameRef.pgn">
+<span class="sig-name descname"><span class="pre">pgn</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></span><a class="headerlink" href="#chess_coach.bin.gm_games.GmGameRef.pgn" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.gm_games.GmGameRef.white">
+<span class="sig-name descname"><span class="pre">white</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#chess_coach.bin.gm_games.GmGameRef.white" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.gm_games.GmGameRef.winner">
+<span class="sig-name descname"><span class="pre">winner</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#chess_coach.bin.gm_games.GmGameRef.winner" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.gm_games.GmGameRef.year">
+<span class="sig-name descname"><span class="pre">year</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#chess_coach.bin.gm_games.GmGameRef.year" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="chess_coach.bin.gm_games.OpeningStudy">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">chess_coach.bin.gm_games.</span></span><span class="sig-name descname"><span class="pre">OpeningStudy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">eco</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opening_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">games</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chess_coach/bin/gm_games.html#OpeningStudy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chess_coach.bin.gm_games.OpeningStudy" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Ensemble de parties de GM pour étudier une ouverture problématique.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">study</span> <span class="o">=</span> <span class="n">OpeningStudy</span><span class="p">(</span><span class="n">eco</span><span class="o">=</span><span class="s2">&quot;B30&quot;</span><span class="p">,</span> <span class="n">opening_name</span><span class="o">=</span><span class="s2">&quot;Sicilian Defense&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">study</span><span class="o">.</span><span class="n">eco</span>
+<span class="go">&#39;B30&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">study</span><span class="o">.</span><span class="n">pgn_text</span>
+<span class="go">&#39;&#39;</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="chess_coach.bin.gm_games.OpeningStudy.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">eco</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opening_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">games</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chess_coach.bin.gm_games.OpeningStudy.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.gm_games.OpeningStudy.eco">
+<span class="sig-name descname"><span class="pre">eco</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#chess_coach.bin.gm_games.OpeningStudy.eco" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.gm_games.OpeningStudy.games">
+<span class="sig-name descname"><span class="pre">games</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#chess_coach.bin.gm_games.GmGameRef" title="chess_coach.bin.gm_games.GmGameRef"><span class="pre">GmGameRef</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#chess_coach.bin.gm_games.OpeningStudy.games" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.gm_games.OpeningStudy.opening_name">
+<span class="sig-name descname"><span class="pre">opening_name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#chess_coach.bin.gm_games.OpeningStudy.opening_name" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="chess_coach.bin.gm_games.OpeningStudy.pgn_text">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">pgn_text</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#chess_coach.bin.gm_games.OpeningStudy.pgn_text" title="Link to this definition"></a></dt>
+<dd><p>Concatène les PGN de toutes les parties pour export disque.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="chess_coach.bin.gm_games.OpeningStudy.summary">
+<span class="sig-name descname"><span class="pre">summary</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chess_coach/bin/gm_games.html#OpeningStudy.summary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chess_coach.bin.gm_games.OpeningStudy.summary" title="Link to this definition"></a></dt>
+<dd><p>Résumé court pour injection dans le prompt Claude.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">study</span> <span class="o">=</span> <span class="n">OpeningStudy</span><span class="p">(</span><span class="n">eco</span><span class="o">=</span><span class="s2">&quot;B30&quot;</span><span class="p">,</span> <span class="n">opening_name</span><span class="o">=</span><span class="s2">&quot;Sicilian Defense&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="s2">&quot;B30&quot;</span> <span class="ow">in</span> <span class="n">study</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chess_coach.bin.gm_games.download_pgns">
+<span class="sig-prename descclassname"><span class="pre">chess_coach.bin.gm_games.</span></span><span class="sig-name descname"><span class="pre">download_pgns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">refs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">token</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chess_coach/bin/gm_games.html#download_pgns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chess_coach.bin.gm_games.download_pgns" title="Link to this definition"></a></dt>
+<dd><p>Télécharge le PGN complet de chaque partie depuis l’API Lichess.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>refs</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<a class="reference internal" href="#chess_coach.bin.gm_games.GmGameRef" title="chess_coach.bin.gm_games.GmGameRef"><code class="xref py py-class docutils literal notranslate"><span class="pre">GmGameRef</span></code></a>]</span>) – Références issues de fetch_master_games_for_eco.</p></li>
+<li><p><strong>token</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Token Lichess OAuth.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<a class="reference internal" href="#chess_coach.bin.gm_games.GmGameRef" title="chess_coach.bin.gm_games.GmGameRef"><code class="xref py py-class docutils literal notranslate"><span class="pre">GmGameRef</span></code></a>]</span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>La même liste avec le champ <code class="docutils literal notranslate"><span class="pre">pgn</span></code> rempli pour les parties
+téléchargées avec succès.</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">download_pgns</span><span class="p">([],</span> <span class="s2">&quot;tok&quot;</span><span class="p">)</span>
+<span class="go">[]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chess_coach.bin.gm_games.fetch_master_games_for_eco">
+<span class="sig-prename descclassname"><span class="pre">chess_coach.bin.gm_games.</span></span><span class="sig-name descname"><span class="pre">fetch_master_games_for_eco</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">eco</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opening_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">token</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_games</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">since_year</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">caissai_config_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chess_coach/bin/gm_games.html#fetch_master_games_for_eco"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chess_coach.bin.gm_games.fetch_master_games_for_eco" title="Link to this definition"></a></dt>
+<dd><p>Récupère les meilleures parties pour un code ECO.</p>
+<p>Résout le FEN depuis lichess_eco.parquet (pas de navigation API),
+puis interroge /masters et /lichess en fallback.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>eco</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Code ECO (ex: “B30”).</p></li>
+<li><p><strong>opening_name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Nom de l’ouverture (pour les métadonnées).</p></li>
+<li><p><strong>token</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Token Lichess OAuth (utilisé pour le fallback /lichess).</p></li>
+<li><p><strong>max_games</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Nombre max de parties (défaut : 5).</p></li>
+<li><p><strong>since_year</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Filtrer les parties après cette année.</p></li>
+<li><p><strong>caissai_config_path</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Dossier config/ de caissAI pour trouver le parquet.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<a class="reference internal" href="#chess_coach.bin.gm_games.GmGameRef" title="chess_coach.bin.gm_games.GmGameRef"><code class="xref py py-class docutils literal notranslate"><span class="pre">GmGameRef</span></code></a>]</span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Liste de GmGameRef (sans PGN — appeler download_pgns ensuite).</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fetch_master_games_for_eco</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;test&quot;</span><span class="p">,</span> <span class="s2">&quot;tok&quot;</span><span class="p">,</span> <span class="n">max_games</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="go">[]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chess_coach.bin.gm_games.fetch_opening_studies">
+<span class="sig-prename descclassname"><span class="pre">chess_coach.bin.gm_games.</span></span><span class="sig-name descname"><span class="pre">fetch_opening_studies</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">problematic_openings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lichess_token</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">caissai_config_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_games_per_opening</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_openings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">since_year</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chess_coach/bin/gm_games.html#fetch_opening_studies"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chess_coach.bin.gm_games.fetch_opening_studies" title="Link to this definition"></a></dt>
+<dd><p>Récupère des parties de joueurs 2200+ pour les ouvertures problématiques.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>problematic_openings</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>]]</span>) – Liste de (code_ECO, nom_ouverture, nb_erreurs).</p></li>
+<li><p><strong>lichess_token</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Token Lichess OAuth (optionnel, utilisé pour le fallback
+/lichess si /masters est indisponible).</p></li>
+<li><p><strong>caissai_config_path</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Dossier config/ de caissAI contenant
+<code class="docutils literal notranslate"><span class="pre">lichess_eco.parquet</span></code>.</p></li>
+<li><p><strong>max_games_per_opening</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Parties par ouverture (défaut : 3).</p></li>
+<li><p><strong>max_openings</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Nombre max d’ouvertures traitées (défaut : 3).</p></li>
+<li><p><strong>since_year</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Filtre temporel (défaut : 2000).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<a class="reference internal" href="#chess_coach.bin.gm_games.OpeningStudy" title="chess_coach.bin.gm_games.OpeningStudy"><code class="xref py py-class docutils literal notranslate"><span class="pre">OpeningStudy</span></code></a>]</span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Liste d’OpeningStudy avec leurs parties.</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fetch_opening_studies</span><span class="p">([],</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+<span class="go">[]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="chess_coach.bin.coach.html" class="btn btn-neutral float-left" title="chess_coach.bin.coach module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="chess_coach.bin.paths.html" class="btn btn-neutral float-right" title="chess_coach.bin.paths module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Matthieu Daviaud.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

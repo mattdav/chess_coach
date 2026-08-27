@@ -1,0 +1,7 @@
+chess_coach
+===========
+
+.. toctree::
+   :maxdepth: 4
+
+   chess_coach

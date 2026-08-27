@@ -1,0 +1,166 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>chess_coach.bin.session module &mdash; chess_coach 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="chess_coach.bin.tracker module" href="chess_coach.bin.tracker.html" />
+    <link rel="prev" title="chess_coach.bin.report_writer module" href="chess_coach.bin.report_writer.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            chess_coach
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">chess_coach</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="chess_coach.html">chess_coach package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="chess_coach.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="chess_coach.bin.html">chess_coach.bin package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="chess_coach.config.html">chess_coach.config package</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">chess_coach</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">chess_coach</a></li>
+          <li class="breadcrumb-item"><a href="chess_coach.html">chess_coach package</a></li>
+          <li class="breadcrumb-item"><a href="chess_coach.bin.html">chess_coach.bin package</a></li>
+      <li class="breadcrumb-item active">chess_coach.bin.session module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/chess_coach.bin.session.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-chess_coach.bin.session">
+<span id="chess-coach-bin-session-module"></span><h1>chess_coach.bin.session module<a class="headerlink" href="#module-chess_coach.bin.session" title="Link to this heading"></a></h1>
+<p>Orchestrateur de session de coaching.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="chess_coach.bin.session.run_session">
+<span class="sig-prename descclassname"><span class="pre">chess_coach.bin.session.</span></span><span class="sig-name descname"><span class="pre">run_session</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pgn_games</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">player_elo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">player_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lichess_token</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">caissai_config_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_daily_minutes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">45</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'chess_coach.db'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">podcast_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_podcasts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dry_run</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">generate_podcast</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'claude-sonnet-4-5'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chess_coach/bin/session.html#run_session"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chess_coach.bin.session.run_session" title="Link to this definition"></a></dt>
+<dd><p>Exécute une session de coaching depuis des parties déjà annotées par caissAI.</p>
+<p>Pipeline en 4 étapes :
+1. Extraction des erreurs depuis les PGN annotés (NAGs caissAI)
+2. Profil de faiblesses agrégé
+3. Parties GM Lichess Masters + plan Claude + livrable Markdown
+4. Podcasts podgenai (optionnel) + persistance SQLite</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pgn_games</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Game</span></code>]</span>) – Parties PGN déjà annotées par caissAI.</p></li>
+<li><p><strong>player_elo</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Elo courant.</p></li>
+<li><p><strong>player_name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Nom du joueur pour filtrer ses erreurs (correspondance
+partielle). Si vide, toutes les erreurs sont remontées.</p></li>
+<li><p><strong>max_daily_minutes</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Durée max entraînement par jour (pour Claude).</p></li>
+<li><p><strong>db_path</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></span>) – Chemin vers la base SQLite. Normalement fourni par la CLI,
+qui le résout depuis <code class="docutils literal notranslate"><span class="pre">CHESS_COACH_DATA_DIR</span></code>.</p></li>
+<li><p><strong>lichess_token</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Token Lichess OAuth pour récupérer les parties GM
+(générer sur <a class="reference external" href="https://lichess.org/account/oauth/token">https://lichess.org/account/oauth/token</a>).
+Si vide, l’étape parties GM est ignorée.</p></li>
+<li><p><strong>output_dir</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Dossier de sortie pour le plan Markdown. Normalement
+fourni par la CLI, qui le résout depuis <code class="docutils literal notranslate"><span class="pre">CHESS_COACH_PLANS_DIR</span></code>.
+Si None, écrit dans <code class="docutils literal notranslate"><span class="pre">plans/</span></code> relatif au dossier courant.</p></li>
+<li><p><strong>podcast_dir</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span>) – Dossier de sortie des MP3 podgenai. Si None, se place
+sous <code class="docutils literal notranslate"><span class="pre">output_dir/podcasts/</span></code>.</p></li>
+<li><p><strong>max_podcasts</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Nombre maximum de podcasts à générer.</p></li>
+<li><p><strong>dry_run</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Extrait les erreurs sans appel Claude ni écriture SQLite.</p></li>
+<li><p><strong>generate_podcast</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Active la génération de podcasts podgenai.</p></li>
+<li><p><strong>model</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Modèle Claude. Défaut : ANTHROPIC_MODEL dans .env,
+sinon “claude-sonnet-4-5”.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<a class="reference internal" href="chess_coach.bin.pattern_detector.html#chess_coach.bin.pattern_detector.WeaknessProfile" title="chess_coach.bin.pattern_detector.WeaknessProfile"><code class="xref py py-class docutils literal notranslate"><span class="pre">WeaknessProfile</span></code></a>, <a class="reference internal" href="chess_coach.bin.coach.html#chess_coach.bin.coach.TrainingPlan" title="chess_coach.bin.coach.TrainingPlan"><code class="xref py py-class docutils literal notranslate"><span class="pre">TrainingPlan</span></code></a> | <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple (WeaknessProfile, TrainingPlan | None).</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="chess_coach.bin.report_writer.html" class="btn btn-neutral float-left" title="chess_coach.bin.report_writer module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="chess_coach.bin.tracker.html" class="btn btn-neutral float-right" title="chess_coach.bin.tracker module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Matthieu Daviaud.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

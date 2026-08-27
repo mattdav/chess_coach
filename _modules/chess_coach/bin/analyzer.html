@@ -1,0 +1,338 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>chess_coach.bin.analyzer &mdash; chess_coach 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            chess_coach
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/modules.html">chess_coach</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">chess_coach</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">chess_coach.bin.analyzer</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for chess_coach.bin.analyzer</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Extraction des erreurs depuis des parties déjà annotées par caissAI.</span>
+
+<span class="sd">Ce module lit directement le PGN annoté produit par caissAI (NAGs, commentaires,</span>
+<span class="sd">variantes) et en extrait un GameReport structuré. Il ne lance aucune analyse :</span>
+<span class="sd">caissAI doit avoir été exécuté en amont.</span>
+
+<span class="sd">Mapping NAG → MoveError</span>
+<span class="sd">-----------------------</span>
+<span class="sd">    NAG_BLUNDER ($4)       → catégorie &quot;blunder&quot;  proxy cp_loss = 300</span>
+<span class="sd">    NAG_MISTAKE ($2)       → catégorie &quot;mistake&quot;  proxy cp_loss = 150</span>
+<span class="sd">    NAG_DUBIOUS_MOVE ($5)  → catégorie &quot;dubious&quot;  proxy cp_loss = 75</span>
+<span class="sd">    Autres NAGs            → ignorés (bons coups, coups forcés…)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">chess</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">chess.pgn</span>
+
+<span class="c1"># NAGs caissAI qui indiquent une erreur du joueur</span>
+<span class="n">_ERROR_NAGS</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="n">chess</span><span class="o">.</span><span class="n">pgn</span><span class="o">.</span><span class="n">NAG_DUBIOUS_MOVE</span><span class="p">,</span>  <span class="c1"># $5 — coup douteux</span>
+        <span class="n">chess</span><span class="o">.</span><span class="n">pgn</span><span class="o">.</span><span class="n">NAG_MISTAKE</span><span class="p">,</span>  <span class="c1"># $2 — erreur</span>
+        <span class="n">chess</span><span class="o">.</span><span class="n">pgn</span><span class="o">.</span><span class="n">NAG_BLUNDER</span><span class="p">,</span>  <span class="c1"># $4 — gaffe</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+
+<span class="n">_NAG_CATEGORY</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">chess</span><span class="o">.</span><span class="n">pgn</span><span class="o">.</span><span class="n">NAG_DUBIOUS_MOVE</span><span class="p">:</span> <span class="s2">&quot;dubious&quot;</span><span class="p">,</span>
+    <span class="n">chess</span><span class="o">.</span><span class="n">pgn</span><span class="o">.</span><span class="n">NAG_MISTAKE</span><span class="p">:</span> <span class="s2">&quot;mistake&quot;</span><span class="p">,</span>
+    <span class="n">chess</span><span class="o">.</span><span class="n">pgn</span><span class="o">.</span><span class="n">NAG_BLUNDER</span><span class="p">:</span> <span class="s2">&quot;blunder&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">_NAG_CP_PROXY</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">chess</span><span class="o">.</span><span class="n">pgn</span><span class="o">.</span><span class="n">NAG_DUBIOUS_MOVE</span><span class="p">:</span> <span class="mi">75</span><span class="p">,</span>
+    <span class="n">chess</span><span class="o">.</span><span class="n">pgn</span><span class="o">.</span><span class="n">NAG_MISTAKE</span><span class="p">:</span> <span class="mi">150</span><span class="p">,</span>
+    <span class="n">chess</span><span class="o">.</span><span class="n">pgn</span><span class="o">.</span><span class="n">NAG_BLUNDER</span><span class="p">:</span> <span class="mi">300</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="MoveError">
+<a class="viewcode-back" href="../../../api/chess_coach.bin.analyzer.html#chess_coach.bin.analyzer.MoveError">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MoveError</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Erreur détectée sur un coup dans un PGN annoté par caissAI.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; err = MoveError(</span>
+<span class="sd">        ...     fen=&quot;rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1&quot;,</span>
+<span class="sd">        ...     played=&quot;e7e5&quot;,</span>
+<span class="sd">        ...     best=&quot;c7c5&quot;,</span>
+<span class="sd">        ...     cp_loss=150,</span>
+<span class="sd">        ...     category=&quot;mistake&quot;,</span>
+<span class="sd">        ...     phase=&quot;opening&quot;,</span>
+<span class="sd">        ...     move_number=1,</span>
+<span class="sd">        ...     comment=&quot;Espérance de gain pour les noirs : -12.50%.&quot;,</span>
+<span class="sd">        ... )</span>
+<span class="sd">        &gt;&gt;&gt; err.category</span>
+<span class="sd">        &#39;mistake&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">fen</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">played</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1"># notation UCI</span>
+    <span class="n">best</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1"># meilleur coup UCI (variante caissAI)</span>
+    <span class="n">cp_loss</span><span class="p">:</span> <span class="nb">int</span>  <span class="c1"># proxy centipawns basé sur le NAG</span>
+    <span class="n">category</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1"># &quot;dubious&quot; | &quot;mistake&quot; | &quot;blunder&quot;</span>
+    <span class="n">phase</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1"># &quot;opening&quot; | &quot;middlegame&quot; | &quot;endgame&quot;</span>
+    <span class="n">move_number</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">comment</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>  <span class="c1"># commentaire caissAI sur le coup</span></div>
+
+
+
+<div class="viewcode-block" id="GameReport">
+<a class="viewcode-back" href="../../../api/chess_coach.bin.analyzer.html#chess_coach.bin.analyzer.GameReport">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GameReport</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Rapport d&#39;analyse d&#39;une partie annotée par caissAI.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; report = GameReport(game_id=&quot;abc&quot;, opening=&quot;Sicilian Defense&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; report.acpl</span>
+<span class="sd">        0.0</span>
+<span class="sd">        &gt;&gt;&gt; report.annotated_pgn</span>
+<span class="sd">        &#39;&#39;</span>
+<span class="sd">        &gt;&gt;&gt; report.eco</span>
+<span class="sd">        &#39;&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">game_id</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">opening</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">eco</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>  <span class="c1"># code ECO (ex: &quot;B30&quot;) — toujours présent dans caissAI</span>
+    <span class="n">errors</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MoveError</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">acpl</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c1"># moyenne des cp_loss proxy sur les erreurs</span>
+    <span class="n">annotated_pgn</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>  <span class="c1"># PGN annoté complet (texte brut)</span></div>
+
+
+
+<div class="viewcode-block" id="report_from_pgn">
+<a class="viewcode-back" href="../../../api/chess_coach.bin.analyzer.html#chess_coach.bin.analyzer.report_from_pgn">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">report_from_pgn</span><span class="p">(</span>
+    <span class="n">annotated_game</span><span class="p">:</span> <span class="n">chess</span><span class="o">.</span><span class="n">pgn</span><span class="o">.</span><span class="n">Game</span><span class="p">,</span>
+    <span class="n">player_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GameReport</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extrait un GameReport depuis une partie déjà annotée par caissAI.</span>
+
+<span class="sd">    Parcourt les nœuds de la ligne principale. Pour chaque nœud portant</span>
+<span class="sd">    un NAG d&#39;erreur ($2, $4, $5), crée un MoveError. Ne relance aucune</span>
+<span class="sd">    analyse : le PGN doit contenir les annotations caissAI.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        annotated_game: Partie PGN annotée par caissAI.</span>
+<span class="sd">        player_name: Si fourni, ne remonte que les erreurs du joueur dont</span>
+<span class="sd">            le nom correspond (correspondance partielle, insensible à la casse)</span>
+<span class="sd">            dans les headers White ou Black.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Rapport structuré avec la liste des erreurs et l&#39;ACPL proxy.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; import chess.pgn</span>
+<span class="sd">        &gt;&gt;&gt; game = chess.pgn.Game()</span>
+<span class="sd">        &gt;&gt;&gt; game.headers[&quot;Site&quot;] = &quot;test&quot;</span>
+<span class="sd">        &gt;&gt;&gt; game.headers[&quot;Opening&quot;] = &quot;King&#39;s Pawn&quot;</span>
+<span class="sd">        &gt;&gt;&gt; report = report_from_pgn(game)</span>
+<span class="sd">        &gt;&gt;&gt; report.game_id</span>
+<span class="sd">        &#39;test&#39;</span>
+<span class="sd">        &gt;&gt;&gt; report.acpl</span>
+<span class="sd">        0.0</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">headers</span> <span class="o">=</span> <span class="n">annotated_game</span><span class="o">.</span><span class="n">headers</span>
+    <span class="n">report</span> <span class="o">=</span> <span class="n">GameReport</span><span class="p">(</span>
+        <span class="n">game_id</span><span class="o">=</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Site&quot;</span><span class="p">,</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Event&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)),</span>
+        <span class="n">opening</span><span class="o">=</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Opening&quot;</span><span class="p">,</span> <span class="s2">&quot;Unknown&quot;</span><span class="p">),</span>
+        <span class="n">eco</span><span class="o">=</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ECO&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+        <span class="n">annotated_pgn</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">annotated_game</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Déterminer la couleur du joueur suivi (None = les deux camps)</span>
+    <span class="n">player_color</span><span class="p">:</span> <span class="n">chess</span><span class="o">.</span><span class="n">Color</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">player_name</span><span class="p">:</span>
+        <span class="n">white</span> <span class="o">=</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;White&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">black</span> <span class="o">=</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Black&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">player_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">white</span><span class="p">:</span>
+            <span class="n">player_color</span> <span class="o">=</span> <span class="n">chess</span><span class="o">.</span><span class="n">WHITE</span>
+        <span class="k">elif</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">black</span><span class="p">:</span>
+            <span class="n">player_color</span> <span class="o">=</span> <span class="n">chess</span><span class="o">.</span><span class="n">BLACK</span>
+
+    <span class="n">cp_losses</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">annotated_game</span><span class="o">.</span><span class="n">mainline</span><span class="p">():</span>
+        <span class="c1"># Filtrer sur le joueur si demandé</span>
+        <span class="k">if</span> <span class="n">player_color</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">node</span><span class="o">.</span><span class="n">parent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">board</span><span class="p">()</span><span class="o">.</span><span class="n">turn</span> <span class="o">!=</span> <span class="n">player_color</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+        <span class="n">error_nag</span> <span class="o">=</span> <span class="nb">next</span><span class="p">((</span><span class="n">nag</span> <span class="k">for</span> <span class="n">nag</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">nags</span> <span class="k">if</span> <span class="n">nag</span> <span class="ow">in</span> <span class="n">_ERROR_NAGS</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">error_nag</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">cp_proxy</span> <span class="o">=</span> <span class="n">_NAG_CP_PROXY</span><span class="p">[</span><span class="n">error_nag</span><span class="p">]</span>
+        <span class="n">cp_losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cp_proxy</span><span class="p">)</span>
+        <span class="c1"># FEN avant le coup joué — permet de reproduire la position sur l&#39;échiquier</span>
+        <span class="n">parent_board</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">board</span><span class="p">()</span> <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">parent</span> <span class="k">else</span> <span class="n">node</span><span class="o">.</span><span class="n">board</span><span class="p">()</span>
+
+        <span class="n">report</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">MoveError</span><span class="p">(</span>
+                <span class="n">fen</span><span class="o">=</span><span class="n">parent_board</span><span class="o">.</span><span class="n">fen</span><span class="p">(),</span>
+                <span class="n">played</span><span class="o">=</span><span class="n">node</span><span class="o">.</span><span class="n">move</span><span class="o">.</span><span class="n">uci</span><span class="p">()</span> <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">move</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+                <span class="n">best</span><span class="o">=</span><span class="n">_best_move_from_variation</span><span class="p">(</span><span class="n">node</span><span class="p">),</span>
+                <span class="n">cp_loss</span><span class="o">=</span><span class="n">cp_proxy</span><span class="p">,</span>
+                <span class="n">category</span><span class="o">=</span><span class="n">_NAG_CATEGORY</span><span class="p">[</span><span class="n">error_nag</span><span class="p">],</span>
+                <span class="n">phase</span><span class="o">=</span><span class="n">_get_phase</span><span class="p">(</span><span class="n">parent_board</span><span class="p">),</span>
+                <span class="n">move_number</span><span class="o">=</span><span class="n">parent_board</span><span class="o">.</span><span class="n">fullmove_number</span><span class="p">,</span>
+                <span class="n">comment</span><span class="o">=</span><span class="n">node</span><span class="o">.</span><span class="n">comment</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="n">report</span><span class="o">.</span><span class="n">acpl</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">cp_losses</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">cp_losses</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">cp_losses</span> <span class="k">else</span> <span class="mf">0.0</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+        <span class="s2">&quot;report_from_pgn : </span><span class="si">%d</span><span class="s2"> erreurs, ACPL proxy </span><span class="si">%.1f</span><span class="s2"> — </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="nb">len</span><span class="p">(</span><span class="n">report</span><span class="o">.</span><span class="n">errors</span><span class="p">),</span>
+        <span class="n">report</span><span class="o">.</span><span class="n">acpl</span><span class="p">,</span>
+        <span class="n">report</span><span class="o">.</span><span class="n">game_id</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">report</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_phase</span><span class="p">(</span><span class="n">board</span><span class="p">:</span> <span class="n">chess</span><span class="o">.</span><span class="n">Board</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Détermine la phase de jeu à partir du plateau.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        board: Position après le coup joué.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ``&quot;opening&quot;`` (≤ 10 coups), ``&quot;endgame&quot;`` (≤ 14 pièces),</span>
+<span class="sd">        ``&quot;middlegame&quot;`` sinon.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; import chess</span>
+<span class="sd">        &gt;&gt;&gt; _get_phase(chess.Board())</span>
+<span class="sd">        &#39;opening&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">board</span><span class="o">.</span><span class="n">fullmove_number</span> <span class="o">&lt;=</span> <span class="mi">10</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;opening&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">board</span><span class="o">.</span><span class="n">piece_map</span><span class="p">())</span> <span class="o">&lt;=</span> <span class="mi">14</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;endgame&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;middlegame&quot;</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_best_move_from_variation</span><span class="p">(</span><span class="n">node</span><span class="p">:</span> <span class="n">chess</span><span class="o">.</span><span class="n">pgn</span><span class="o">.</span><span class="n">GameNode</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extrait le meilleur coup depuis la variante caissAI du nœud parent.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        node: Nœud courant (après le coup joué).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Meilleur coup en notation UCI, ou ``&quot;&quot;`` si indisponible.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; import chess.pgn</span>
+<span class="sd">        &gt;&gt;&gt; game = chess.pgn.Game()</span>
+<span class="sd">        &gt;&gt;&gt; node = game.add_variation(chess.Move.from_uci(&quot;e2e4&quot;))</span>
+<span class="sd">        &gt;&gt;&gt; _best_move_from_variation(node)</span>
+<span class="sd">        &#39;&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">parent</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">parent</span>
+    <span class="k">if</span> <span class="n">parent</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">variation</span> <span class="ow">in</span> <span class="n">parent</span><span class="o">.</span><span class="n">variations</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">variation</span><span class="o">.</span><span class="n">is_main_variation</span><span class="p">():</span>
+            <span class="n">move</span> <span class="o">=</span> <span class="n">variation</span><span class="o">.</span><span class="n">move</span>
+            <span class="k">return</span> <span class="n">move</span><span class="o">.</span><span class="n">uci</span><span class="p">()</span> <span class="k">if</span> <span class="n">move</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Matthieu Daviaud.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

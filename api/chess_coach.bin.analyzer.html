@@ -1,0 +1,291 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>chess_coach.bin.analyzer module &mdash; chess_coach 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="chess_coach.bin.coach module" href="chess_coach.bin.coach.html" />
+    <link rel="prev" title="chess_coach.bin package" href="chess_coach.bin.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            chess_coach
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">chess_coach</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="chess_coach.html">chess_coach package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="chess_coach.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="chess_coach.bin.html">chess_coach.bin package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="chess_coach.config.html">chess_coach.config package</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">chess_coach</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">chess_coach</a></li>
+          <li class="breadcrumb-item"><a href="chess_coach.html">chess_coach package</a></li>
+          <li class="breadcrumb-item"><a href="chess_coach.bin.html">chess_coach.bin package</a></li>
+      <li class="breadcrumb-item active">chess_coach.bin.analyzer module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/chess_coach.bin.analyzer.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-chess_coach.bin.analyzer">
+<span id="chess-coach-bin-analyzer-module"></span><h1>chess_coach.bin.analyzer module<a class="headerlink" href="#module-chess_coach.bin.analyzer" title="Link to this heading"></a></h1>
+<p>Extraction des erreurs depuis des parties déjà annotées par caissAI.</p>
+<p>Ce module lit directement le PGN annoté produit par caissAI (NAGs, commentaires,
+variantes) et en extrait un GameReport structuré. Il ne lance aucune analyse :
+caissAI doit avoir été exécuté en amont.</p>
+<section id="mapping-nag-moveerror">
+<h2>Mapping NAG → MoveError<a class="headerlink" href="#mapping-nag-moveerror" title="Link to this heading"></a></h2>
+<blockquote>
+<div><p>NAG_BLUNDER ($4)       → catégorie “blunder”  proxy cp_loss = 300
+NAG_MISTAKE ($2)       → catégorie “mistake”  proxy cp_loss = 150
+NAG_DUBIOUS_MOVE ($5)  → catégorie “dubious”  proxy cp_loss = 75
+Autres NAGs            → ignorés (bons coups, coups forcés…)</p>
+</div></blockquote>
+</section>
+<dl class="py class">
+<dt class="sig sig-object py" id="chess_coach.bin.analyzer.GameReport">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">chess_coach.bin.analyzer.</span></span><span class="sig-name descname"><span class="pre">GameReport</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">game_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opening</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eco</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">errors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">acpl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotated_pgn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chess_coach/bin/analyzer.html#GameReport"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chess_coach.bin.analyzer.GameReport" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Rapport d’analyse d’une partie annotée par caissAI.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">report</span> <span class="o">=</span> <span class="n">GameReport</span><span class="p">(</span><span class="n">game_id</span><span class="o">=</span><span class="s2">&quot;abc&quot;</span><span class="p">,</span> <span class="n">opening</span><span class="o">=</span><span class="s2">&quot;Sicilian Defense&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">report</span><span class="o">.</span><span class="n">acpl</span>
+<span class="go">0.0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">report</span><span class="o">.</span><span class="n">annotated_pgn</span>
+<span class="go">&#39;&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">report</span><span class="o">.</span><span class="n">eco</span>
+<span class="go">&#39;&#39;</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="chess_coach.bin.analyzer.GameReport.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">game_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opening</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eco</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">errors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">acpl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotated_pgn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chess_coach.bin.analyzer.GameReport.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.analyzer.GameReport.acpl">
+<span class="sig-name descname"><span class="pre">acpl</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></span><a class="headerlink" href="#chess_coach.bin.analyzer.GameReport.acpl" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.analyzer.GameReport.annotated_pgn">
+<span class="sig-name descname"><span class="pre">annotated_pgn</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></span><a class="headerlink" href="#chess_coach.bin.analyzer.GameReport.annotated_pgn" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.analyzer.GameReport.eco">
+<span class="sig-name descname"><span class="pre">eco</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></span><a class="headerlink" href="#chess_coach.bin.analyzer.GameReport.eco" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.analyzer.GameReport.errors">
+<span class="sig-name descname"><span class="pre">errors</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#chess_coach.bin.analyzer.MoveError" title="chess_coach.bin.analyzer.MoveError"><span class="pre">MoveError</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#chess_coach.bin.analyzer.GameReport.errors" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.analyzer.GameReport.game_id">
+<span class="sig-name descname"><span class="pre">game_id</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#chess_coach.bin.analyzer.GameReport.game_id" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.analyzer.GameReport.opening">
+<span class="sig-name descname"><span class="pre">opening</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#chess_coach.bin.analyzer.GameReport.opening" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="chess_coach.bin.analyzer.MoveError">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">chess_coach.bin.analyzer.</span></span><span class="sig-name descname"><span class="pre">MoveError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">played</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">best</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cp_loss</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">category</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">move_number</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comment</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chess_coach/bin/analyzer.html#MoveError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chess_coach.bin.analyzer.MoveError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Erreur détectée sur un coup dans un PGN annoté par caissAI.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">err</span> <span class="o">=</span> <span class="n">MoveError</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">fen</span><span class="o">=</span><span class="s2">&quot;rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">played</span><span class="o">=</span><span class="s2">&quot;e7e5&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">best</span><span class="o">=</span><span class="s2">&quot;c7c5&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">cp_loss</span><span class="o">=</span><span class="mi">150</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">category</span><span class="o">=</span><span class="s2">&quot;mistake&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">phase</span><span class="o">=</span><span class="s2">&quot;opening&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">move_number</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">comment</span><span class="o">=</span><span class="s2">&quot;Espérance de gain pour les noirs : -12.50%.&quot;</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">err</span><span class="o">.</span><span class="n">category</span>
+<span class="go">&#39;mistake&#39;</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="chess_coach.bin.analyzer.MoveError.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fen</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">played</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">best</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cp_loss</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">category</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">move_number</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comment</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#chess_coach.bin.analyzer.MoveError.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.analyzer.MoveError.best">
+<span class="sig-name descname"><span class="pre">best</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#chess_coach.bin.analyzer.MoveError.best" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.analyzer.MoveError.category">
+<span class="sig-name descname"><span class="pre">category</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#chess_coach.bin.analyzer.MoveError.category" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.analyzer.MoveError.comment">
+<span class="sig-name descname"><span class="pre">comment</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></span><a class="headerlink" href="#chess_coach.bin.analyzer.MoveError.comment" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.analyzer.MoveError.cp_loss">
+<span class="sig-name descname"><span class="pre">cp_loss</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#chess_coach.bin.analyzer.MoveError.cp_loss" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.analyzer.MoveError.fen">
+<span class="sig-name descname"><span class="pre">fen</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#chess_coach.bin.analyzer.MoveError.fen" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.analyzer.MoveError.move_number">
+<span class="sig-name descname"><span class="pre">move_number</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#chess_coach.bin.analyzer.MoveError.move_number" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.analyzer.MoveError.phase">
+<span class="sig-name descname"><span class="pre">phase</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#chess_coach.bin.analyzer.MoveError.phase" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.analyzer.MoveError.played">
+<span class="sig-name descname"><span class="pre">played</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#chess_coach.bin.analyzer.MoveError.played" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chess_coach.bin.analyzer.report_from_pgn">
+<span class="sig-prename descclassname"><span class="pre">chess_coach.bin.analyzer.</span></span><span class="sig-name descname"><span class="pre">report_from_pgn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotated_game</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">player_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chess_coach/bin/analyzer.html#report_from_pgn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chess_coach.bin.analyzer.report_from_pgn" title="Link to this definition"></a></dt>
+<dd><p>Extrait un GameReport depuis une partie déjà annotée par caissAI.</p>
+<p>Parcourt les nœuds de la ligne principale. Pour chaque nœud portant
+un NAG d’erreur ($2, $4, $5), crée un MoveError. Ne relance aucune
+analyse : le PGN doit contenir les annotations caissAI.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>annotated_game</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Game</span></code></span>) – Partie PGN annotée par caissAI.</p></li>
+<li><p><strong>player_name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Si fourni, ne remonte que les erreurs du joueur dont
+le nom correspond (correspondance partielle, insensible à la casse)
+dans les headers White ou Black.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#chess_coach.bin.analyzer.GameReport" title="chess_coach.bin.analyzer.GameReport"><code class="xref py py-class docutils literal notranslate"><span class="pre">GameReport</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Rapport structuré avec la liste des erreurs et l’ACPL proxy.</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">chess.pgn</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">game</span> <span class="o">=</span> <span class="n">chess</span><span class="o">.</span><span class="n">pgn</span><span class="o">.</span><span class="n">Game</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">game</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s2">&quot;Site&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;test&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">game</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s2">&quot;Opening&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;King&#39;s Pawn&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">report</span> <span class="o">=</span> <span class="n">report_from_pgn</span><span class="p">(</span><span class="n">game</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">report</span><span class="o">.</span><span class="n">game_id</span>
+<span class="go">&#39;test&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">report</span><span class="o">.</span><span class="n">acpl</span>
+<span class="go">0.0</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="chess_coach.bin.html" class="btn btn-neutral float-left" title="chess_coach.bin package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="chess_coach.bin.coach.html" class="btn btn-neutral float-right" title="chess_coach.bin.coach module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Matthieu Daviaud.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

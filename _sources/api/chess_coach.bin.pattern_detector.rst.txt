@@ -1,0 +1,7 @@
+chess\_coach.bin.pattern\_detector module
+=========================================
+
+.. automodule:: chess_coach.bin.pattern_detector
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -1,0 +1,370 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>chess_coach.bin.coach &mdash; chess_coach 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            chess_coach
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/modules.html">chess_coach</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">chess_coach</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">chess_coach.bin.coach</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for chess_coach.bin.coach</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Génération du plan d&#39;entraînement hebdomadaire via l&#39;API Claude.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">asdict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">TypedDict</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">anthropic</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">chess_coach.bin.gm_games</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpeningStudy</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">chess_coach.bin.pattern_detector</span><span class="w"> </span><span class="kn">import</span> <span class="n">WeaknessProfile</span>
+
+<span class="n">_COACH_SYSTEM</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;Tu es un coach d&#39;échecs expert.</span>
+<span class="s2">Tu reçois le profil de faiblesses d&#39;un joueur, annoté par le moteur caissAI</span>
+<span class="s2">(Maia2 + Stockfish), et tu génères un plan d&#39;entraînement hebdomadaire précis,</span>
+<span class="s2">actionnable et progressif.</span>
+<span class="s2">Réponds UNIQUEMENT en JSON valide selon le schéma fourni, sans markdown,</span>
+<span class="s2">sans commentaires.&quot;&quot;&quot;</span>
+
+<span class="c1"># Modèle Claude par défaut, surchargeable via ANTHROPIC_MODEL dans .env.</span>
+<span class="n">_DEFAULT_MODEL</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ANTHROPIC_MODEL&quot;</span><span class="p">,</span> <span class="s2">&quot;claude-sonnet-4-5&quot;</span><span class="p">)</span>
+
+<span class="n">_client</span><span class="p">:</span> <span class="n">anthropic</span><span class="o">.</span><span class="n">Anthropic</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_client</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">anthropic</span><span class="o">.</span><span class="n">Anthropic</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Retourne le client Anthropic (singleton lazy).&quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">_client</span>
+    <span class="k">if</span> <span class="n">_client</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">_client</span> <span class="o">=</span> <span class="n">anthropic</span><span class="o">.</span><span class="n">Anthropic</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">_client</span>
+
+
+<div class="viewcode-block" id="DailyExercise">
+<a class="viewcode-back" href="../../../api/chess_coach.bin.coach.html#chess_coach.bin.coach.DailyExercise">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DailyExercise</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Exercice individuel dans une journée d&#39;entraînement.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; ex: DailyExercise = {</span>
+<span class="sd">        ...     &quot;type&quot;: &quot;puzzles&quot;,</span>
+<span class="sd">        ...     &quot;description&quot;: &quot;Tactiques sur le thème de la fourchette&quot;,</span>
+<span class="sd">        ...     &quot;duration_min&quot;: 20,</span>
+<span class="sd">        ...     &quot;lichess_url&quot;: &quot;https://lichess.org/training/fork&quot;,</span>
+<span class="sd">        ... }</span>
+<span class="sd">        &gt;&gt;&gt; ex[&quot;type&quot;]</span>
+<span class="sd">        &#39;puzzles&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nb">type</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1"># &quot;puzzles&quot; | &quot;game_analysis&quot; | &quot;opening_study&quot; | &quot;endgame&quot;</span>
+    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">duration_min</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">lichess_url</span><span class="p">:</span> <span class="nb">str</span></div>
+
+
+
+<div class="viewcode-block" id="DailyTask">
+<a class="viewcode-back" href="../../../api/chess_coach.bin.coach.html#chess_coach.bin.coach.DailyTask">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DailyTask</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Programme d&#39;une journée d&#39;entraînement.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; task: DailyTask = {</span>
+<span class="sd">        ...     &quot;day&quot;: &quot;Lundi&quot;,</span>
+<span class="sd">        ...     &quot;focus&quot;: &quot;Tactiques&quot;,</span>
+<span class="sd">        ...     &quot;exercises&quot;: [],</span>
+<span class="sd">        ... }</span>
+<span class="sd">        &gt;&gt;&gt; task[&quot;day&quot;]</span>
+<span class="sd">        &#39;Lundi&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">day</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">focus</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">exercises</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">DailyExercise</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="TrainingPlan">
+<a class="viewcode-back" href="../../../api/chess_coach.bin.coach.html#chess_coach.bin.coach.TrainingPlan">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TrainingPlan</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plan d&#39;entraînement hebdomadaire généré par Claude.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; plan: TrainingPlan = {</span>
+<span class="sd">        ...     &quot;week_theme&quot;: &quot;Maîtriser les finales de tours&quot;,</span>
+<span class="sd">        ...     &quot;daily_tasks&quot;: [],</span>
+<span class="sd">        ...     &quot;key_concepts&quot;: [&quot;Opposition&quot;, &quot;Zugzwang&quot;],</span>
+<span class="sd">        ...     &quot;success_metrics&quot;: &quot;Taux de réussite puzzles &gt; 70%&quot;,</span>
+<span class="sd">        ... }</span>
+<span class="sd">        &gt;&gt;&gt; plan[&quot;week_theme&quot;]</span>
+<span class="sd">        &#39;Maîtriser les finales de tours&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">week_theme</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">daily_tasks</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">DailyTask</span><span class="p">]</span>
+    <span class="n">key_concepts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">success_metrics</span><span class="p">:</span> <span class="nb">str</span></div>
+
+
+
+<span class="n">_PLAN_SCHEMA</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;week_theme&quot;</span><span class="p">:</span> <span class="s2">&quot;string — thème principal de la semaine&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;daily_tasks&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;day&quot;</span><span class="p">:</span> <span class="s2">&quot;Lundi&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;focus&quot;</span><span class="p">:</span> <span class="s2">&quot;string — objectif de la journée&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;exercises&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;puzzles|game_analysis|opening_study|endgame&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;string — description précise de l&#39;exercice&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;duration_min&quot;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+                    <span class="s2">&quot;lichess_url&quot;</span><span class="p">:</span> <span class="s2">&quot;URL Lichess ou chaîne vide&quot;</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">],</span>
+        <span class="p">}</span>
+    <span class="p">],</span>
+    <span class="s2">&quot;key_concepts&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;concept 1&quot;</span><span class="p">,</span> <span class="s2">&quot;concept 2&quot;</span><span class="p">,</span> <span class="s2">&quot;concept 3&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;success_metrics&quot;</span><span class="p">:</span> <span class="s2">&quot;string — comment mesurer les progrès en fin de semaine&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_serialize_profile</span><span class="p">(</span><span class="n">profile</span><span class="p">:</span> <span class="n">WeaknessProfile</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Sérialise le profil pour l&#39;envoi à Claude.</span>
+
+<span class="sd">    Convertit les dataclasses ``MoveError`` en dicts JSON-compatibles et</span>
+<span class="sd">    enrichit chaque position avec le commentaire caissAI pour que Claude</span>
+<span class="sd">    dispose du contexte pédagogique complet.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        profile: Profil de faiblesses.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict JSON-serializable.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; from chess_coach.bin.pattern_detector import WeaknessProfile</span>
+<span class="sd">        &gt;&gt;&gt; p: WeaknessProfile = {</span>
+<span class="sd">        ...     &quot;total_games&quot;: 0, &quot;avg_acpl&quot;: 0.0, &quot;weakest_phase&quot;: &quot;middlegame&quot;,</span>
+<span class="sd">        ...     &quot;phase_breakdown&quot;: {}, &quot;category_breakdown&quot;: {},</span>
+<span class="sd">        ...     &quot;problematic_openings&quot;: [],</span>
+<span class="sd">        ...     &quot;avg_cp_loss_by_phase&quot;: {}, &quot;worst_positions&quot;: [],</span>
+<span class="sd">        ...     &quot;annotated_pgns&quot;: [],</span>
+<span class="sd">        ... }</span>
+<span class="sd">        &gt;&gt;&gt; d = _serialize_profile(p)</span>
+<span class="sd">        &gt;&gt;&gt; &quot;worst_positions&quot; in d</span>
+<span class="sd">        True</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">serializable</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">profile</span><span class="p">)</span>
+    <span class="n">serializable</span><span class="p">[</span><span class="s2">&quot;worst_positions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="o">**</span><span class="n">asdict</span><span class="p">(</span><span class="n">err</span><span class="p">),</span>
+            <span class="c1"># Le commentaire caissAI est déjà dans err.comment — on le met</span>
+            <span class="c1"># en évidence pour que Claude le lise en premier.</span>
+            <span class="s2">&quot;caissai_comment&quot;</span><span class="p">:</span> <span class="n">err</span><span class="o">.</span><span class="n">comment</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">profile</span><span class="p">[</span><span class="s2">&quot;worst_positions&quot;</span><span class="p">]</span>
+    <span class="p">]</span>
+    <span class="c1"># Les PGN annotés complets ne sont pas envoyés à Claude (trop longs),</span>
+    <span class="c1"># on envoie uniquement les stats agrégées et les pires positions.</span>
+    <span class="n">serializable</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;annotated_pgns&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">serializable</span>
+
+
+<div class="viewcode-block" id="generate_weekly_plan">
+<a class="viewcode-back" href="../../../api/chess_coach.bin.coach.html#chess_coach.bin.coach.generate_weekly_plan">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">generate_weekly_plan</span><span class="p">(</span>
+    <span class="n">profile</span><span class="p">:</span> <span class="n">WeaknessProfile</span><span class="p">,</span>
+    <span class="n">player_elo</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">max_daily_minutes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">45</span><span class="p">,</span>
+    <span class="n">model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">_DEFAULT_MODEL</span><span class="p">,</span>
+    <span class="n">gm_studies</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">OpeningStudy</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TrainingPlan</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Génère un plan d&#39;entraînement hebdomadaire personnalisé via Claude.</span>
+
+<span class="sd">    Le prompt envoie à Claude :</span>
+<span class="sd">    - Les statistiques agrégées (ACPL, phase faible, ventilation erreurs)</span>
+<span class="sd">    - Les 10 pires positions avec leur commentaire caissAI</span>
+<span class="sd">    - Les études de parties de GM pour les ouvertures problématiques</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        profile: Profil de faiblesses construit par ``pattern_detector``.</span>
+<span class="sd">        player_elo: Elo courant du joueur (pour calibrer la difficulté).</span>
+<span class="sd">        max_daily_minutes: Durée maximale d&#39;entraînement par jour.</span>
+<span class="sd">        model: Modèle Claude à utiliser. Défaut : ANTHROPIC_MODEL dans .env,</span>
+<span class="sd">            sinon &quot;claude-sonnet-4-5&quot;.</span>
+<span class="sd">        gm_studies: Études de parties de GM récupérées depuis la Masters API</span>
+<span class="sd">            Lichess. Si fourni, enrich le prompt avec les exemples de GM.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Plan d&#39;entraînement structuré sur 7 jours.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        anthropic.APIError: En cas d&#39;erreur API Claude.</span>
+<span class="sd">        json.JSONDecodeError: Si Claude retourne du JSON invalide.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; isinstance(_PLAN_SCHEMA, dict)</span>
+<span class="sd">        True</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">profile_payload</span> <span class="o">=</span> <span class="n">_serialize_profile</span><span class="p">(</span><span class="n">profile</span><span class="p">)</span>
+
+    <span class="c1"># Section parties de GM</span>
+    <span class="n">gm_section</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">gm_studies</span><span class="p">:</span>
+        <span class="n">gm_lines</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Parties de grands maîtres sur tes ouvertures problématiques &quot;</span>
+            <span class="s2">&quot;(source : Lichess Masters Database) :</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="p">]</span>
+        <span class="k">for</span> <span class="n">study</span> <span class="ow">in</span> <span class="n">gm_studies</span><span class="p">:</span>
+            <span class="n">gm_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">study</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+            <span class="n">gm_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;  Lien d&#39;étude : https://lichess.org/opening/</span><span class="si">{</span><span class="n">study</span><span class="o">.</span><span class="n">eco</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="n">gm_section</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">gm_lines</span><span class="p">)</span>
+
+    <span class="n">prompt</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;Profil du joueur (Elo </span><span class="si">{</span><span class="n">player_elo</span><span class="si">}</span><span class="s2">) annoté par caissAI&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot; (Maia2 + Stockfish) :</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">profile_payload</span><span class="p">,</span><span class="w"> </span><span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;Notes sur les données :</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;- &#39;category&#39; : &#39;blunder&#39; ($4), &#39;mistake&#39; ($2), &#39;dubious&#39; ($5) &quot;</span>
+        <span class="s2">&quot;selon la classification caissAI</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;- &#39;caissai_comment&#39; : commentaire pédagogique de caissAI sur chaque &quot;</span>
+        <span class="s2">&quot;erreur (espérance de gain perdue)</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;- &#39;avg_cp_loss_by_phase&#39; : perte proxy par phase &quot;</span>
+        <span class="s2">&quot;(blunder=300, mistake=150, dubious=75 centipawns)</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">gm_section</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;Génère un plan d&#39;entraînement pour la semaine prochaine.</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;Schéma JSON attendu :</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">_PLAN_SCHEMA</span><span class="p">,</span><span class="w"> </span><span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;Règles :</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;- Maximum </span><span class="si">{</span><span class="n">max_daily_minutes</span><span class="si">}</span><span class="s2"> min/jour</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;- Priorise la phase la plus faible : </span><span class="si">{</span><span class="n">profile</span><span class="p">[</span><span class="s1">&#39;weakest_phase&#39;</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;- Tiens compte des commentaires caissAI pour cibler les thèmes &quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;tactiques spécifiques</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;- Pour les ouvertures problématiques, référence les parties de GM &quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;ci-dessus et propose d&#39;étudier leurs lignes clés sur Lichess</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;- Adapte la difficulté des puzzles à l&#39;Elo : </span><span class="si">{</span><span class="n">player_elo</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;- Les URLs Lichess doivent être réelles et accessibles</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;- Retourne uniquement le JSON, rien d&#39;autre.&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">response</span> <span class="o">=</span> <span class="n">_get_client</span><span class="p">()</span><span class="o">.</span><span class="n">messages</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+        <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+        <span class="n">max_tokens</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span>
+        <span class="n">system</span><span class="o">=</span><span class="n">_COACH_SYSTEM</span><span class="p">,</span>
+        <span class="n">messages</span><span class="o">=</span><span class="p">[{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">prompt</span><span class="p">}],</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">stop_reason</span> <span class="o">==</span> <span class="s2">&quot;max_tokens&quot;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Réponse Claude tronquée (max_tokens atteint) — augmenter &quot;</span>
+            <span class="s2">&quot;max_tokens dans generate_weekly_plan().&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">first_block</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">content</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">first_block</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Réponse Claude inattendue : pas de bloc texte.&quot;</span><span class="p">)</span>
+    <span class="n">raw</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">first_block</span><span class="o">.</span><span class="n">text</span>
+    <span class="n">stripped</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">stripped</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;```&quot;</span><span class="p">):</span>
+        <span class="n">stripped</span> <span class="o">=</span> <span class="n">stripped</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="ow">in</span> <span class="n">stripped</span> <span class="k">else</span> <span class="n">stripped</span><span class="p">[</span><span class="mi">3</span><span class="p">:]</span>
+        <span class="n">stripped</span> <span class="o">=</span> <span class="n">stripped</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;`&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span>
+
+    <span class="n">plan</span><span class="p">:</span> <span class="n">TrainingPlan</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">stripped</span><span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;generate_weekly_plan : thème &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span><span class="p">,</span> <span class="n">plan</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;week_theme&quot;</span><span class="p">,</span> <span class="s2">&quot;?&quot;</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">plan</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Matthieu Daviaud.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,7 @@
+chess\_coach.bin.player\_config module
+======================================
+
+.. automodule:: chess_coach.bin.player_config
+   :members:
+   :show-inheritance:
+   :undoc-members:

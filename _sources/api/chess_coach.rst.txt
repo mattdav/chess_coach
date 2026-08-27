@@ -1,0 +1,16 @@
+chess\_coach package
+====================
+
+.. automodule:: chess_coach
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   chess_coach.bin
+   chess_coach.config

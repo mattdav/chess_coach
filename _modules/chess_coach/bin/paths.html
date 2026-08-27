@@ -1,0 +1,275 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>chess_coach.bin.paths &mdash; chess_coach 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            chess_coach
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/modules.html">chess_coach</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">chess_coach</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">chess_coach.bin.paths</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for chess_coach.bin.paths</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Résolution des chemins runtime de chess_coach.</span>
+
+<span class="sd">Le programme n&#39;écrit jamais dans le package installé : une réinstallation</span>
+<span class="sd">ou un ``uv tool upgrade`` remplacerait le contenu du package et effacerait</span>
+<span class="sd">la base SQLite, les plans générés et la configuration joueur.</span>
+
+<span class="sd">Tous les emplacements suivent la même précédence :</span>
+<span class="sd">``argument CLI &gt; variable d&#39;environnement &gt; défaut utilisateur``.</span>
+
+<span class="sd">Variables reconnues :</span>
+<span class="sd">    CHESS_COACH_DATA_DIR      Base SQLite et dossier d&#39;état par défaut</span>
+<span class="sd">    CHESS_COACH_PLANS_DIR     Plans d&#39;entraînement Markdown</span>
+<span class="sd">    CHESS_COACH_PODCAST_DIR   MP3 générés par podgenai</span>
+<span class="sd">    CHESS_COACH_LOG_DIR       Journal applicatif</span>
+<span class="sd">    CHESS_COACH_CONFIG        Fichier player_config.yaml</span>
+<span class="sd">    CHESS_COACH_PGN           Fichier PGN analysé par défaut</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="n">CONFIG_FILENAME</span> <span class="o">=</span> <span class="s2">&quot;player_config.yaml&quot;</span>
+
+
+<div class="viewcode-block" id="default_state_dir">
+<a class="viewcode-back" href="../../../api/chess_coach.bin.paths.html#chess_coach.bin.paths.default_state_dir">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">default_state_dir</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Dossier d&#39;état par défaut, situé hors du package installé.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ``%LOCALAPPDATA%/chess_coach`` sous Windows,</span>
+<span class="sd">        ``~/.local/share/chess_coach`` ailleurs.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; default_state_dir().name</span>
+<span class="sd">        &#39;chess_coach&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">local_appdata</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;LOCALAPPDATA&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">local_appdata</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">local_appdata</span><span class="p">)</span> <span class="o">/</span> <span class="s2">&quot;chess_coach&quot;</span>
+    <span class="k">return</span> <span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span> <span class="o">/</span> <span class="s2">&quot;.local&quot;</span> <span class="o">/</span> <span class="s2">&quot;share&quot;</span> <span class="o">/</span> <span class="s2">&quot;chess_coach&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="resolve_path">
+<a class="viewcode-back" href="../../../api/chess_coach.bin.paths.html#chess_coach.bin.paths.resolve_path">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">resolve_path</span><span class="p">(</span><span class="n">cli_value</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">env_var</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Résout un chemin selon la précédence CLI &gt; environnement &gt; défaut.</span>
+
+<span class="sd">    S&#39;applique indifféremment à un dossier ou à un fichier : la fonction</span>
+<span class="sd">    ne fait que choisir une valeur et normaliser ``~``, sans rien créer</span>
+<span class="sd">    ni vérifier l&#39;existence.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        cli_value: Valeur passée en argument CLI (prioritaire), ou None.</span>
+<span class="sd">        env_var: Nom de la variable d&#39;environnement à consulter ensuite.</span>
+<span class="sd">        default: Valeur de repli si ni l&#39;un ni l&#39;autre n&#39;est renseigné.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Chemin résolu, avec ``~`` développé.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; resolve_path(&quot;/tmp/cli&quot;, &quot;UNSET_VAR_XYZ&quot;, Path(&quot;/tmp/def&quot;)).name</span>
+<span class="sd">        &#39;cli&#39;</span>
+<span class="sd">        &gt;&gt;&gt; resolve_path(None, &quot;UNSET_VAR_XYZ&quot;, Path(&quot;/tmp/def&quot;)).name</span>
+<span class="sd">        &#39;def&#39;</span>
+<span class="sd">        &gt;&gt;&gt; resolve_path(&quot;&quot;, &quot;UNSET_VAR_XYZ&quot;, Path(&quot;/tmp/def&quot;)).name</span>
+<span class="sd">        &#39;def&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">cli_value</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">cli_value</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">()</span>
+    <span class="n">env_value</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">env_var</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">env_value</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">env_value</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">default</span></div>
+
+
+
+<div class="viewcode-block" id="packaged_config_path">
+<a class="viewcode-back" href="../../../api/chess_coach.bin.paths.html#chess_coach.bin.paths.packaged_config_path">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">packaged_config_path</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Chemin du ``player_config.yaml`` livré avec le package.</span>
+
+<span class="sd">    Sert uniquement de modèle initial : ce fichier n&#39;est jamais modifié à</span>
+<span class="sd">    l&#39;exécution, puisqu&#39;il serait écrasé à la prochaine mise à jour.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Chemin vers le YAML packagé (peut ne pas exister).</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; packaged_config_path().name</span>
+<span class="sd">        &#39;player_config.yaml&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;config&quot;</span> <span class="o">/</span> <span class="n">CONFIG_FILENAME</span></div>
+
+
+
+<div class="viewcode-block" id="resolve_config_path">
+<a class="viewcode-back" href="../../../api/chess_coach.bin.paths.html#chess_coach.bin.paths.resolve_config_path">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">resolve_config_path</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Résout l&#39;emplacement du ``player_config.yaml`` utilisateur.</span>
+
+<span class="sd">    Précédence :</span>
+
+<span class="sd">    1. ``CHESS_COACH_CONFIG`` — chemin complet du fichier</span>
+<span class="sd">    2. ``CHESS_COACH_DATA_DIR/player_config.yaml``</span>
+<span class="sd">    3. ``default_state_dir()/player_config.yaml``</span>
+
+<span class="sd">    Piloté par environnement uniquement, sans argument CLI : la</span>
+<span class="sd">    configuration est lue avant le parsing des arguments, puisqu&#39;elle</span>
+<span class="sd">    alimente les valeurs par défaut de ``--player`` et ``--elo``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Chemin du fichier de configuration utilisateur (peut ne pas</span>
+<span class="sd">        encore exister ; voir :func:`ensure_user_config`).</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; resolve_config_path().name</span>
+<span class="sd">        &#39;player_config.yaml&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">explicit</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;CHESS_COACH_CONFIG&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">explicit</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">explicit</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">()</span>
+    <span class="n">state_dir</span> <span class="o">=</span> <span class="n">resolve_path</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;CHESS_COACH_DATA_DIR&quot;</span><span class="p">,</span> <span class="n">default_state_dir</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">state_dir</span> <span class="o">/</span> <span class="n">CONFIG_FILENAME</span></div>
+
+
+
+<div class="viewcode-block" id="ensure_user_config">
+<a class="viewcode-back" href="../../../api/chess_coach.bin.paths.html#chess_coach.bin.paths.ensure_user_config">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">ensure_user_config</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Garantit qu&#39;un ``player_config.yaml`` utilisateur existe.</span>
+
+<span class="sd">    Au premier lancement, copie le modèle packagé vers l&#39;emplacement</span>
+<span class="sd">    utilisateur résolu. Un fichier déjà présent n&#39;est jamais écrasé : les</span>
+<span class="sd">    valeurs saisies par l&#39;utilisateur priment toujours sur le modèle.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Chemin du fichier de configuration utilisateur. Si la copie</span>
+<span class="sd">        échoue (droits, disque), retourne le chemin packagé en repli pour</span>
+<span class="sd">        que le programme reste utilisable en lecture seule.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        Fonction à effet de bord (écriture disque) : elle est couverte par</span>
+<span class="sd">        ``tests/unit/test_paths.py`` sur un dossier temporaire, pas par un</span>
+<span class="sd">        doctest qui écrirait dans la configuration réelle de l&#39;utilisateur.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">target</span> <span class="o">=</span> <span class="n">resolve_config_path</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">target</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">target</span>
+
+    <span class="n">source</span> <span class="o">=</span> <span class="n">packaged_config_path</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">source</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;ensure_user_config : modèle packagé introuvable (</span><span class="si">%s</span><span class="s2">).&quot;</span><span class="p">,</span> <span class="n">source</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">target</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">target</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">copy2</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="s2">&quot;ensure_user_config : copie impossible vers </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%s</span><span class="s2">) — &quot;</span>
+            <span class="s2">&quot;lecture du modèle packagé.&quot;</span><span class="p">,</span>
+            <span class="n">target</span><span class="p">,</span>
+            <span class="n">exc</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">source</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;ensure_user_config : configuration initialisée → </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Configuration joueur initialisée : </span><span class="si">{</span><span class="n">target</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">target</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Matthieu Daviaud.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

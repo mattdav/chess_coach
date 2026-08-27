@@ -1,0 +1,7 @@
+chess\_coach.bin.report\_writer module
+======================================
+
+.. automodule:: chess_coach.bin.report_writer
+   :members:
+   :show-inheritance:
+   :undoc-members:

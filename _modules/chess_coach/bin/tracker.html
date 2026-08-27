@@ -1,0 +1,266 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>chess_coach.bin.tracker &mdash; chess_coach 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            chess_coach
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/modules.html">chess_coach</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">chess_coach</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">chess_coach.bin.tracker</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for chess_coach.bin.tracker</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Persistance SQLite des snapshots hebdomadaires et suivi de progression.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sqlite3</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">asdict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">date</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">chess_coach.bin.coach</span><span class="w"> </span><span class="kn">import</span> <span class="n">TrainingPlan</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">chess_coach.bin.pattern_detector</span><span class="w"> </span><span class="kn">import</span> <span class="n">WeaknessProfile</span>
+
+<span class="n">_CREATE_SCHEMA</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">CREATE TABLE IF NOT EXISTS weekly_snapshots (</span>
+<span class="s2">    week        TEXT PRIMARY KEY,</span>
+<span class="s2">    elo         INTEGER NOT NULL,</span>
+<span class="s2">    acpl        REAL NOT NULL,</span>
+<span class="s2">    profile     TEXT NOT NULL,</span>
+<span class="s2">    plan        TEXT NOT NULL,</span>
+<span class="s2">    created_at  TEXT NOT NULL</span>
+<span class="s2">);</span>
+
+<span class="s2">CREATE TABLE IF NOT EXISTS puzzle_sessions (</span>
+<span class="s2">    id          INTEGER PRIMARY KEY AUTOINCREMENT,</span>
+<span class="s2">    date        TEXT NOT NULL,</span>
+<span class="s2">    theme       TEXT NOT NULL,</span>
+<span class="s2">    solved      INTEGER NOT NULL,</span>
+<span class="s2">    attempted   INTEGER NOT NULL,</span>
+<span class="s2">    accuracy    REAL NOT NULL</span>
+<span class="s2">);</span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="init_db">
+<a class="viewcode-back" href="../../../api/chess_coach.bin.tracker.html#chess_coach.bin.tracker.init_db">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">init_db</span><span class="p">(</span><span class="n">db_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">=</span> <span class="s2">&quot;chess_coach.db&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Connection</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialise la base SQLite et retourne la connexion.</span>
+
+<span class="sd">    Crée le fichier et les tables s&#39;ils n&#39;existent pas.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        db_path: Chemin vers le fichier SQLite.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Connexion SQLite ouverte.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; conn = init_db(&quot;:memory:&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; conn.execute(</span>
+<span class="sd">        ...     &quot;SELECT name FROM sqlite_master &quot;</span>
+<span class="sd">        ...     &quot;WHERE type=&#39;table&#39; AND name NOT LIKE &#39;sqlite_%&#39;&quot;</span>
+<span class="sd">        ... ).fetchall()</span>
+<span class="sd">        [(&#39;weekly_snapshots&#39;,), (&#39;puzzle_sessions&#39;,)]</span>
+<span class="sd">        &gt;&gt;&gt; conn.close()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">db_path</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;:memory:&quot;</span><span class="p">:</span>
+        <span class="n">path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">db_path</span><span class="p">))</span>
+    <span class="n">conn</span><span class="o">.</span><span class="n">executescript</span><span class="p">(</span><span class="n">_CREATE_SCHEMA</span><span class="p">)</span>
+    <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;init_db : base initialisée à </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">db_path</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">conn</span></div>
+
+
+
+<div class="viewcode-block" id="save_snapshot">
+<a class="viewcode-back" href="../../../api/chess_coach.bin.tracker.html#chess_coach.bin.tracker.save_snapshot">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">save_snapshot</span><span class="p">(</span>
+    <span class="n">conn</span><span class="p">:</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Connection</span><span class="p">,</span>
+    <span class="n">elo</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">profile</span><span class="p">:</span> <span class="n">WeaknessProfile</span><span class="p">,</span>
+    <span class="n">plan</span><span class="p">:</span> <span class="n">TrainingPlan</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Sauvegarde le snapshot hebdomadaire dans la base.</span>
+
+<span class="sd">    Utilise la date courante comme clé (``YYYY-MM-DD``).</span>
+<span class="sd">    Si un snapshot existe déjà pour cette semaine, il est écrasé.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        conn: Connexion SQLite ouverte.</span>
+<span class="sd">        elo: Elo courant du joueur.</span>
+<span class="sd">        profile: Profil de faiblesses de la semaine.</span>
+<span class="sd">        plan: Plan d&#39;entraînement généré par Claude.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; from chess_coach.bin.pattern_detector import WeaknessProfile</span>
+<span class="sd">        &gt;&gt;&gt; from chess_coach.bin.coach import TrainingPlan</span>
+<span class="sd">        &gt;&gt;&gt; conn = init_db(&quot;:memory:&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; p: WeaknessProfile = {</span>
+<span class="sd">        ...     &quot;total_games&quot;: 5, &quot;avg_acpl&quot;: 40.0, &quot;weakest_phase&quot;: &quot;middlegame&quot;,</span>
+<span class="sd">        ...     &quot;phase_breakdown&quot;: {}, &quot;problematic_openings&quot;: [],</span>
+<span class="sd">        ...     &quot;avg_cp_loss_by_phase&quot;: {}, &quot;worst_positions&quot;: [],</span>
+<span class="sd">        ... }</span>
+<span class="sd">        &gt;&gt;&gt; t: TrainingPlan = {</span>
+<span class="sd">        ...     &quot;week_theme&quot;: &quot;test&quot;, &quot;daily_tasks&quot;: [],</span>
+<span class="sd">        ...     &quot;key_concepts&quot;: [], &quot;success_metrics&quot;: &quot;&quot;,</span>
+<span class="sd">        ... }</span>
+<span class="sd">        &gt;&gt;&gt; save_snapshot(conn, 1500, p, t)</span>
+<span class="sd">        &gt;&gt;&gt; conn.execute(&quot;SELECT elo FROM weekly_snapshots&quot;).fetchone()</span>
+<span class="sd">        (1500,)</span>
+<span class="sd">        &gt;&gt;&gt; conn.close()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">profile_serializable</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">profile</span><span class="p">)</span>
+    <span class="n">profile_serializable</span><span class="p">[</span><span class="s2">&quot;worst_positions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">asdict</span><span class="p">(</span><span class="n">err</span><span class="p">)</span> <span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">profile</span><span class="p">[</span><span class="s2">&quot;worst_positions&quot;</span><span class="p">]</span>
+    <span class="p">]</span>
+
+    <span class="n">conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        INSERT OR REPLACE INTO weekly_snapshots</span>
+<span class="sd">        (week, elo, acpl, profile, plan, created_at)</span>
+<span class="sd">        VALUES (?, ?, ?, ?, ?, ?)</span>
+<span class="sd">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="p">(</span>
+            <span class="nb">str</span><span class="p">(</span><span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()),</span>
+            <span class="n">elo</span><span class="p">,</span>
+            <span class="n">profile</span><span class="p">[</span><span class="s2">&quot;avg_acpl&quot;</span><span class="p">],</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">profile_serializable</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">conn</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+        <span class="s2">&quot;save_snapshot : snapshot sauvegardé (Elo </span><span class="si">%d</span><span class="s2">, ACPL </span><span class="si">%.1f</span><span class="s2">)&quot;</span><span class="p">,</span>
+        <span class="n">elo</span><span class="p">,</span>
+        <span class="n">profile</span><span class="p">[</span><span class="s2">&quot;avg_acpl&quot;</span><span class="p">],</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="get_progress_trend">
+<a class="viewcode-back" href="../../../api/chess_coach.bin.tracker.html#chess_coach.bin.tracker.get_progress_trend">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_progress_trend</span><span class="p">(</span>
+    <span class="n">conn</span><span class="p">:</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Connection</span><span class="p">,</span>
+    <span class="n">weeks</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Retourne l&#39;évolution de l&#39;ACPL sur les N dernières semaines.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        conn: Connexion SQLite ouverte.</span>
+<span class="sd">        weeks: Nombre de semaines à récupérer (défaut : 8).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Liste de dicts ``{&quot;week&quot;, &quot;elo&quot;, &quot;acpl&quot;}`` du plus récent au plus ancien.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; conn = init_db(&quot;:memory:&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; get_progress_trend(conn, weeks=4)</span>
+<span class="sd">        []</span>
+<span class="sd">        &gt;&gt;&gt; conn.close()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        SELECT week, elo, acpl</span>
+<span class="sd">        FROM weekly_snapshots</span>
+<span class="sd">        ORDER BY week DESC</span>
+<span class="sd">        LIMIT ?</span>
+<span class="sd">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">weeks</span><span class="p">,),</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+    <span class="k">return</span> <span class="p">[{</span><span class="s2">&quot;week&quot;</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;elo&quot;</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s2">&quot;acpl&quot;</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="mi">2</span><span class="p">]}</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">]</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Matthieu Daviaud.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

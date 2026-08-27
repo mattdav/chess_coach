@@ -1,0 +1,250 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>chess_coach.bin.player_config &mdash; chess_coach 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            chess_coach
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/modules.html">chess_coach</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">chess_coach</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">chess_coach.bin.player_config</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for chess_coach.bin.player_config</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Lecture de la configuration joueur depuis ``config/player_config.yaml``.</span>
+
+<span class="sd">Ce module expose :</span>
+<span class="sd">- ``PlayerConfig`` : dataclass avec nom et elo du joueur</span>
+<span class="sd">- ``load_player_config()`` : charge le fichier YAML et retourne un PlayerConfig</span>
+<span class="sd">- ``load_pgn_filter_from_config()`` : construit un PgnFilter depuis le même fichier</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">chess_coach.bin.paths</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_config_path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">chess_coach.bin.pgn_filter</span><span class="w"> </span><span class="kn">import</span> <span class="n">PgnFilter</span>
+
+
+<div class="viewcode-block" id="PlayerConfig">
+<a class="viewcode-back" href="../../../api/chess_coach.bin.player_config.html#chess_coach.bin.player_config.PlayerConfig">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PlayerConfig</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Configuration personnelle du joueur.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; cfg = PlayerConfig(name=&quot;Dupont&quot;, elo=1650)</span>
+<span class="sd">        &gt;&gt;&gt; cfg.name</span>
+<span class="sd">        &#39;Dupont&#39;</span>
+<span class="sd">        &gt;&gt;&gt; cfg.elo</span>
+<span class="sd">        1650</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">elo</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1500</span></div>
+
+
+
+<div class="viewcode-block" id="load_player_config">
+<a class="viewcode-back" href="../../../api/chess_coach.bin.player_config.html#chess_coach.bin.player_config.load_player_config">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_player_config</span><span class="p">(</span><span class="n">config_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PlayerConfig</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Charge la configuration joueur depuis ``player_config.yaml``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        config_path: Chemin vers le fichier YAML. Si None, résout</span>
+<span class="sd">            l&#39;emplacement utilisateur (``CHESS_COACH_CONFIG`` ou</span>
+<span class="sd">            ``CHESS_COACH_DATA_DIR``).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        :class:`PlayerConfig` rempli. Retourne des valeurs par défaut si</span>
+<span class="sd">        le fichier est absent.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; import tempfile, pathlib, textwrap</span>
+<span class="sd">        &gt;&gt;&gt; yaml_content = textwrap.dedent(&#39;&#39;&#39;</span>
+<span class="sd">        ...     player:</span>
+<span class="sd">        ...       name: &quot;Dupont&quot;</span>
+<span class="sd">        ...       elo: 1700</span>
+<span class="sd">        ... &#39;&#39;&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; with tempfile.NamedTemporaryFile(</span>
+<span class="sd">        ...     mode=&#39;w&#39;, suffix=&#39;.yaml&#39;, delete=False, encoding=&#39;utf-8&#39;</span>
+<span class="sd">        ... ) as f:</span>
+<span class="sd">        ...     _ = f.write(yaml_content)</span>
+<span class="sd">        ...     tmp = pathlib.Path(f.name)</span>
+<span class="sd">        &gt;&gt;&gt; cfg = load_player_config(tmp)</span>
+<span class="sd">        &gt;&gt;&gt; cfg.name</span>
+<span class="sd">        &#39;Dupont&#39;</span>
+<span class="sd">        &gt;&gt;&gt; cfg.elo</span>
+<span class="sd">        1700</span>
+<span class="sd">        &gt;&gt;&gt; tmp.unlink()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">config_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">config_path</span> <span class="o">=</span> <span class="n">resolve_config_path</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">config_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">&quot;load_player_config : </span><span class="si">%s</span><span class="s2"> absent — valeurs par défaut.&quot;</span><span class="p">,</span> <span class="n">config_path</span><span class="o">.</span><span class="n">name</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">PlayerConfig</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="n">config_path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+        <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">fh</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+
+    <span class="n">player_section</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;player&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="k">return</span> <span class="n">PlayerConfig</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">player_section</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+        <span class="n">elo</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">player_section</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;elo&quot;</span><span class="p">,</span> <span class="mi">1500</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">1500</span><span class="p">),</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="load_pgn_filter_from_config">
+<a class="viewcode-back" href="../../../api/chess_coach.bin.player_config.html#chess_coach.bin.player_config.load_pgn_filter_from_config">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_pgn_filter_from_config</span><span class="p">(</span><span class="n">config_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PgnFilter</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Construit un PgnFilter depuis ``player_config.yaml``.</span>
+
+<span class="sd">    Lit les critères de filtrage (events, date, results, min_opponent_elo,</span>
+<span class="sd">    keywords) ainsi que le nom du joueur pour les construire en PgnFilter.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        config_path: Chemin vers le fichier YAML. Si None, résout</span>
+<span class="sd">            l&#39;emplacement utilisateur (``CHESS_COACH_CONFIG`` ou</span>
+<span class="sd">            ``CHESS_COACH_DATA_DIR``).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        :class:`PgnFilter` prêt à l&#39;emploi.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; import tempfile, pathlib, textwrap</span>
+<span class="sd">        &gt;&gt;&gt; yaml_content = textwrap.dedent(&#39;&#39;&#39;</span>
+<span class="sd">        ...     player:</span>
+<span class="sd">        ...       name: &quot;Dupont&quot;</span>
+<span class="sd">        ...     results: [&quot;1-0&quot;]</span>
+<span class="sd">        ... &#39;&#39;&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; with tempfile.NamedTemporaryFile(</span>
+<span class="sd">        ...     mode=&#39;w&#39;, suffix=&#39;.yaml&#39;, delete=False, encoding=&#39;utf-8&#39;</span>
+<span class="sd">        ... ) as f:</span>
+<span class="sd">        ...     _ = f.write(yaml_content)</span>
+<span class="sd">        ...     tmp = pathlib.Path(f.name)</span>
+<span class="sd">        &gt;&gt;&gt; f = load_pgn_filter_from_config(tmp)</span>
+<span class="sd">        &gt;&gt;&gt; f.player_name</span>
+<span class="sd">        &#39;Dupont&#39;</span>
+<span class="sd">        &gt;&gt;&gt; f.results</span>
+<span class="sd">        [&#39;1-0&#39;]</span>
+<span class="sd">        &gt;&gt;&gt; tmp.unlink()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">config_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">config_path</span> <span class="o">=</span> <span class="n">resolve_config_path</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">config_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">PgnFilter</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="n">config_path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+        <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">fh</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+
+    <span class="n">player_section</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;player&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="n">date_section</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;date&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+
+    <span class="k">return</span> <span class="n">PgnFilter</span><span class="p">(</span>
+        <span class="n">player_name</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">player_section</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+        <span class="n">player_color</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">player_section</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="s2">&quot;both&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;both&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+        <span class="n">events</span><span class="o">=</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;events&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[])</span> <span class="k">if</span> <span class="n">e</span><span class="p">],</span>
+        <span class="n">date_from</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">date_section</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;from&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+        <span class="n">date_to</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">date_section</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;to&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+        <span class="n">results</span><span class="o">=</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;results&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[])</span> <span class="k">if</span> <span class="n">r</span><span class="p">],</span>
+        <span class="n">min_opponent_elo</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;min_opponent_elo&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="n">keywords</span><span class="o">=</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;keywords&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[])</span> <span class="k">if</span> <span class="n">k</span><span class="p">],</span>
+    <span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Matthieu Daviaud.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

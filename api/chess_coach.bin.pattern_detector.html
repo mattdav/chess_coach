@@ -1,0 +1,222 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>chess_coach.bin.pattern_detector module &mdash; chess_coach 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="chess_coach.bin.pgn_collector module" href="chess_coach.bin.pgn_collector.html" />
+    <link rel="prev" title="chess_coach.bin.paths module" href="chess_coach.bin.paths.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            chess_coach
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">chess_coach</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="chess_coach.html">chess_coach package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="chess_coach.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="chess_coach.bin.html">chess_coach.bin package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="chess_coach.config.html">chess_coach.config package</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">chess_coach</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">chess_coach</a></li>
+          <li class="breadcrumb-item"><a href="chess_coach.html">chess_coach package</a></li>
+          <li class="breadcrumb-item"><a href="chess_coach.bin.html">chess_coach.bin package</a></li>
+      <li class="breadcrumb-item active">chess_coach.bin.pattern_detector module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/chess_coach.bin.pattern_detector.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-chess_coach.bin.pattern_detector">
+<span id="chess-coach-bin-pattern-detector-module"></span><h1>chess_coach.bin.pattern_detector module<a class="headerlink" href="#module-chess_coach.bin.pattern_detector" title="Link to this heading"></a></h1>
+<p>Agrégation des GameReports en profil de faiblesses structuré.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="chess_coach.bin.pattern_detector.WeaknessProfile">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">chess_coach.bin.pattern_detector.</span></span><span class="sig-name descname"><span class="pre">WeaknessProfile</span></span><a class="reference internal" href="../_modules/chess_coach/bin/pattern_detector.html#WeaknessProfile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chess_coach.bin.pattern_detector.WeaknessProfile" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">TypedDict</span></code></p>
+<p>Profil de faiblesses agrégé sur un ensemble de parties.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="p">:</span> <span class="n">WeaknessProfile</span> <span class="o">=</span> <span class="p">{</span>
+<span class="gp">... </span>    <span class="s2">&quot;total_games&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s2">&quot;avg_acpl&quot;</span><span class="p">:</span> <span class="mf">45.2</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s2">&quot;weakest_phase&quot;</span><span class="p">:</span> <span class="s2">&quot;middlegame&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="s2">&quot;phase_breakdown&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;opening&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;middlegame&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span> <span class="s2">&quot;endgame&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">},</span>
+<span class="gp">... </span>    <span class="s2">&quot;category_breakdown&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;blunder&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;mistake&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="s2">&quot;dubious&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">},</span>
+<span class="gp">... </span>    <span class="s2">&quot;problematic_openings&quot;</span><span class="p">:</span> <span class="p">[(</span><span class="s2">&quot;B30&quot;</span><span class="p">,</span> <span class="s2">&quot;Sicilian Defense&quot;</span><span class="p">,</span> <span class="mi">4</span><span class="p">)],</span>
+<span class="gp">... </span>    <span class="s2">&quot;avg_cp_loss_by_phase&quot;</span><span class="p">:</span> <span class="p">{</span>
+<span class="gp">... </span>        <span class="s2">&quot;opening&quot;</span><span class="p">:</span> <span class="mf">75.0</span><span class="p">,</span> <span class="s2">&quot;middlegame&quot;</span><span class="p">:</span> <span class="mf">180.0</span><span class="p">,</span> <span class="s2">&quot;endgame&quot;</span><span class="p">:</span> <span class="mf">75.0</span>
+<span class="gp">... </span>    <span class="p">},</span>
+<span class="gp">... </span>    <span class="s2">&quot;worst_positions&quot;</span><span class="p">:</span> <span class="p">[],</span>
+<span class="gp">... </span>    <span class="s2">&quot;annotated_pgns&quot;</span><span class="p">:</span> <span class="p">[],</span>
+<span class="gp">... </span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="p">[</span><span class="s2">&quot;weakest_phase&quot;</span><span class="p">]</span>
+<span class="go">&#39;middlegame&#39;</span>
+</pre></div>
+</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.pattern_detector.WeaknessProfile.annotated_pgns">
+<span class="sig-name descname"><span class="pre">annotated_pgns</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#chess_coach.bin.pattern_detector.WeaknessProfile.annotated_pgns" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.pattern_detector.WeaknessProfile.avg_acpl">
+<span class="sig-name descname"><span class="pre">avg_acpl</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#chess_coach.bin.pattern_detector.WeaknessProfile.avg_acpl" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.pattern_detector.WeaknessProfile.avg_cp_loss_by_phase">
+<span class="sig-name descname"><span class="pre">avg_cp_loss_by_phase</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#chess_coach.bin.pattern_detector.WeaknessProfile.avg_cp_loss_by_phase" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.pattern_detector.WeaknessProfile.category_breakdown">
+<span class="sig-name descname"><span class="pre">category_breakdown</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#chess_coach.bin.pattern_detector.WeaknessProfile.category_breakdown" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.pattern_detector.WeaknessProfile.phase_breakdown">
+<span class="sig-name descname"><span class="pre">phase_breakdown</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#chess_coach.bin.pattern_detector.WeaknessProfile.phase_breakdown" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.pattern_detector.WeaknessProfile.problematic_openings">
+<span class="sig-name descname"><span class="pre">problematic_openings</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#chess_coach.bin.pattern_detector.WeaknessProfile.problematic_openings" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.pattern_detector.WeaknessProfile.total_games">
+<span class="sig-name descname"><span class="pre">total_games</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#chess_coach.bin.pattern_detector.WeaknessProfile.total_games" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.pattern_detector.WeaknessProfile.weakest_phase">
+<span class="sig-name descname"><span class="pre">weakest_phase</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#chess_coach.bin.pattern_detector.WeaknessProfile.weakest_phase" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="chess_coach.bin.pattern_detector.WeaknessProfile.worst_positions">
+<span class="sig-name descname"><span class="pre">worst_positions</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="chess_coach.bin.analyzer.html#chess_coach.bin.analyzer.MoveError" title="chess_coach.bin.analyzer.MoveError"><span class="pre">MoveError</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#chess_coach.bin.pattern_detector.WeaknessProfile.worst_positions" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="chess_coach.bin.pattern_detector.build_weakness_profile">
+<span class="sig-prename descclassname"><span class="pre">chess_coach.bin.pattern_detector.</span></span><span class="sig-name descname"><span class="pre">build_weakness_profile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reports</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/chess_coach/bin/pattern_detector.html#build_weakness_profile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#chess_coach.bin.pattern_detector.build_weakness_profile" title="Link to this definition"></a></dt>
+<dd><p>Agrège les rapports de parties en un profil de faiblesses.</p>
+<p>Les ouvertures problématiques sont agrégées par <strong>code ECO</strong> (toujours
+présent dans les annotations caissAI) et non par nom d’ouverture
+(absent dans les anciennes annotations).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>reports</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code>[<a class="reference internal" href="chess_coach.bin.analyzer.html#chess_coach.bin.analyzer.GameReport" title="chess_coach.bin.analyzer.GameReport"><code class="xref py py-class docutils literal notranslate"><span class="pre">GameReport</span></code></a>]</span>) – Rapports issus de <code class="docutils literal notranslate"><span class="pre">analyzer.report_from_pgn</span></code>.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#chess_coach.bin.pattern_detector.WeaknessProfile" title="chess_coach.bin.pattern_detector.WeaknessProfile"><code class="xref py py-class docutils literal notranslate"><span class="pre">WeaknessProfile</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Profil structuré prêt à être consommé par <code class="docutils literal notranslate"><span class="pre">coach.generate_weekly_plan</span></code>.</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">chess_coach.bin.analyzer</span><span class="w"> </span><span class="kn">import</span> <span class="n">GameReport</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">profile</span> <span class="o">=</span> <span class="n">build_weakness_profile</span><span class="p">([])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">profile</span><span class="p">[</span><span class="s2">&quot;total_games&quot;</span><span class="p">]</span>
+<span class="go">0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">profile</span><span class="p">[</span><span class="s2">&quot;weakest_phase&quot;</span><span class="p">]</span>
+<span class="go">&#39;middlegame&#39;</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="chess_coach.bin.paths.html" class="btn btn-neutral float-left" title="chess_coach.bin.paths module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="chess_coach.bin.pgn_collector.html" class="btn btn-neutral float-right" title="chess_coach.bin.pgn_collector module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Matthieu Daviaud.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

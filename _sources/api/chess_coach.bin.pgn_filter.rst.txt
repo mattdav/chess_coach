@@ -1,0 +1,7 @@
+chess\_coach.bin.pgn\_filter module
+===================================
+
+.. automodule:: chess_coach.bin.pgn_filter
+   :members:
+   :show-inheritance:
+   :undoc-members:

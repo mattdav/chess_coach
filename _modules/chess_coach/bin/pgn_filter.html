@@ -1,0 +1,378 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>chess_coach.bin.pgn_filter &mdash; chess_coach 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            chess_coach
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/modules.html">chess_coach</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">chess_coach</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">chess_coach.bin.pgn_filter</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for chess_coach.bin.pgn_filter</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Filtrage déclaratif des parties PGN selon un profil YAML.</span>
+
+<span class="sd">Le filtre est chargé depuis ``config/pgn_filter.yaml``. Tous les critères</span>
+<span class="sd">sont combinés en ET (une partie doit satisfaire TOUS les critères actifs).</span>
+<span class="sd">À l&#39;intérieur d&#39;une liste (events, results, keywords), les valeurs sont en OU.</span>
+
+<span class="sd">Critères disponibles :</span>
+<span class="sd">    player.name        Nom du joueur (correspondance partielle, insensible à la casse)</span>
+<span class="sd">    player.color       Côté du joueur : &quot;white&quot; | &quot;black&quot; | &quot;both&quot;</span>
+<span class="sd">    events             Liste de mots-clés sur le header [Event]</span>
+<span class="sd">    date.from / to     Fenêtre de dates (format PGN : &quot;YYYY.MM.DD&quot;)</span>
+<span class="sd">    results            Liste de résultats admis : &quot;1-0&quot;, &quot;0-1&quot;, &quot;1/2-1/2&quot;</span>
+<span class="sd">    min_opponent_elo   Elo minimum de l&#39;adversaire (0 = pas de filtre)</span>
+<span class="sd">    keywords           Mots-clés libres dans n&#39;importe quel header</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">chess.pgn</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+
+
+<div class="viewcode-block" id="PgnFilter">
+<a class="viewcode-back" href="../../../api/chess_coach.bin.pgn_filter.html#chess_coach.bin.pgn_filter.PgnFilter">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PgnFilter</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Critères de sélection des parties PGN.</span>
+
+<span class="sd">    Tous les champs sont optionnels. Un champ absent ou vide désactive</span>
+<span class="sd">    le critère correspondant.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; f = PgnFilter()</span>
+<span class="sd">        &gt;&gt;&gt; f.player_name</span>
+<span class="sd">        &#39;&#39;</span>
+<span class="sd">        &gt;&gt;&gt; f.is_active</span>
+<span class="sd">        False</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">player_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">player_color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;both&quot;</span>  <span class="c1"># &quot;white&quot; | &quot;black&quot; | &quot;both&quot;</span>
+    <span class="n">events</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">date_from</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>  <span class="c1"># &quot;YYYY.MM.DD&quot; ou préfixe &quot;YYYY&quot;</span>
+    <span class="n">date_to</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">results</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">min_opponent_elo</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">keywords</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_active</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retourne True si au moins un critère est actif.</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">            &gt;&gt;&gt; PgnFilter().is_active</span>
+<span class="sd">            False</span>
+<span class="sd">            &gt;&gt;&gt; PgnFilter(player_name=&quot;Dupont&quot;).is_active</span>
+<span class="sd">            True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">player_name</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">events</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_from</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_to</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_opponent_elo</span> <span class="o">&gt;</span> <span class="mi">0</span>
+            <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">keywords</span>
+        <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="load_filter">
+<a class="viewcode-back" href="../../../api/chess_coach.bin.pgn_filter.html#chess_coach.bin.pgn_filter.load_filter">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_filter</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PgnFilter</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Charge un filtre PGN depuis un fichier YAML.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        path: Chemin vers ``pgn_filter.yaml``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Instance de :class:`PgnFilter`. Si le fichier est absent ou vide,</span>
+<span class="sd">        retourne un filtre inactif (aucun critère).</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; import tempfile, pathlib, textwrap</span>
+<span class="sd">        &gt;&gt;&gt; yaml_content = textwrap.dedent(&#39;&#39;&#39;</span>
+<span class="sd">        ...     player:</span>
+<span class="sd">        ...       name: &quot;Dupont&quot;</span>
+<span class="sd">        ...     results: [&quot;1-0&quot;]</span>
+<span class="sd">        ... &#39;&#39;&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; with tempfile.NamedTemporaryFile(</span>
+<span class="sd">        ...     mode=&#39;w&#39;, suffix=&#39;.yaml&#39;, delete=False, encoding=&#39;utf-8&#39;</span>
+<span class="sd">        ... ) as f:</span>
+<span class="sd">        ...     _ = f.write(yaml_content)</span>
+<span class="sd">        ...     tmp = pathlib.Path(f.name)</span>
+<span class="sd">        &gt;&gt;&gt; pgn_filter = load_filter(tmp)</span>
+<span class="sd">        &gt;&gt;&gt; pgn_filter.player_name</span>
+<span class="sd">        &#39;Dupont&#39;</span>
+<span class="sd">        &gt;&gt;&gt; pgn_filter.results</span>
+<span class="sd">        [&#39;1-0&#39;]</span>
+<span class="sd">        &gt;&gt;&gt; tmp.unlink()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;load_filter : </span><span class="si">%s</span><span class="s2"> absent — filtre inactif.&quot;</span><span class="p">,</span> <span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">PgnFilter</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="n">path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+        <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">fh</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+
+    <span class="n">player_section</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;player&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="n">date_section</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;date&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+
+    <span class="k">return</span> <span class="n">PgnFilter</span><span class="p">(</span>
+        <span class="n">player_name</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">player_section</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+        <span class="n">player_color</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">player_section</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="s2">&quot;both&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;both&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+        <span class="n">events</span><span class="o">=</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;events&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[])</span> <span class="k">if</span> <span class="n">e</span><span class="p">],</span>
+        <span class="n">date_from</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">date_section</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;from&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+        <span class="n">date_to</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">date_section</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;to&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+        <span class="n">results</span><span class="o">=</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;results&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[])</span> <span class="k">if</span> <span class="n">r</span><span class="p">],</span>
+        <span class="n">min_opponent_elo</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;min_opponent_elo&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="n">keywords</span><span class="o">=</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;keywords&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[])</span> <span class="k">if</span> <span class="n">k</span><span class="p">],</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="matches">
+<a class="viewcode-back" href="../../../api/chess_coach.bin.pgn_filter.html#chess_coach.bin.pgn_filter.matches">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">matches</span><span class="p">(</span><span class="n">game</span><span class="p">:</span> <span class="n">chess</span><span class="o">.</span><span class="n">pgn</span><span class="o">.</span><span class="n">Game</span><span class="p">,</span> <span class="n">pgn_filter</span><span class="p">:</span> <span class="n">PgnFilter</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Vérifie si une partie satisfait tous les critères du filtre.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        game: Partie PGN à tester.</span>
+<span class="sd">        pgn_filter: Critères de sélection.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        True si la partie satisfait tous les critères actifs.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; import chess.pgn</span>
+<span class="sd">        &gt;&gt;&gt; game = chess.pgn.Game()</span>
+<span class="sd">        &gt;&gt;&gt; game.headers.update({</span>
+<span class="sd">        ...     &quot;White&quot;: &quot;Dupont, Jean&quot;,</span>
+<span class="sd">        ...     &quot;Black&quot;: &quot;Martin, Paul&quot;,</span>
+<span class="sd">        ...     &quot;Event&quot;: &quot;Championnat régional&quot;,</span>
+<span class="sd">        ...     &quot;Date&quot;: &quot;2024.03.15&quot;,</span>
+<span class="sd">        ...     &quot;Result&quot;: &quot;1-0&quot;,</span>
+<span class="sd">        ...     &quot;WhiteElo&quot;: &quot;1800&quot;,</span>
+<span class="sd">        ...     &quot;BlackElo&quot;: &quot;1650&quot;,</span>
+<span class="sd">        ... })</span>
+<span class="sd">        &gt;&gt;&gt; matches(game, PgnFilter())</span>
+<span class="sd">        True</span>
+<span class="sd">        &gt;&gt;&gt; matches(game, PgnFilter(player_name=&quot;Dupont&quot;))</span>
+<span class="sd">        True</span>
+<span class="sd">        &gt;&gt;&gt; matches(game, PgnFilter(player_name=&quot;Dupont&quot;, player_color=&quot;black&quot;))</span>
+<span class="sd">        False</span>
+<span class="sd">        &gt;&gt;&gt; matches(game, PgnFilter(results=[&quot;0-1&quot;]))</span>
+<span class="sd">        False</span>
+<span class="sd">        &gt;&gt;&gt; matches(game, PgnFilter(date_from=&quot;2025.01.01&quot;))</span>
+<span class="sd">        False</span>
+<span class="sd">        &gt;&gt;&gt; matches(game, PgnFilter(min_opponent_elo=1700, player_name=&quot;Dupont&quot;))</span>
+<span class="sd">        False</span>
+<span class="sd">        &gt;&gt;&gt; matches(game, PgnFilter(min_opponent_elo=1600, player_name=&quot;Dupont&quot;))</span>
+<span class="sd">        True</span>
+<span class="sd">        &gt;&gt;&gt; # sans player_name, l&#39;adversaire n&#39;est pas déterminable : le</span>
+<span class="sd">        &gt;&gt;&gt; # critère Elo est silencieusement ignoré.</span>
+<span class="sd">        &gt;&gt;&gt; matches(game, PgnFilter(min_opponent_elo=1700))</span>
+<span class="sd">        True</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">pgn_filter</span><span class="o">.</span><span class="n">is_active</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="n">headers</span> <span class="o">=</span> <span class="n">game</span><span class="o">.</span><span class="n">headers</span>
+    <span class="n">white</span> <span class="o">=</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;White&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">black</span> <span class="o">=</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Black&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+    <span class="c1"># ── Filtre joueur ──────────────────────────────────────────────────────</span>
+    <span class="k">if</span> <span class="n">pgn_filter</span><span class="o">.</span><span class="n">player_name</span><span class="p">:</span>
+        <span class="n">name_lower</span> <span class="o">=</span> <span class="n">pgn_filter</span><span class="o">.</span><span class="n">player_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">color</span> <span class="o">=</span> <span class="n">pgn_filter</span><span class="o">.</span><span class="n">player_color</span>
+
+        <span class="n">plays_white</span> <span class="o">=</span> <span class="n">name_lower</span> <span class="ow">in</span> <span class="n">white</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">plays_black</span> <span class="o">=</span> <span class="n">name_lower</span> <span class="ow">in</span> <span class="n">black</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">color</span> <span class="o">==</span> <span class="s2">&quot;white&quot;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">plays_white</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">color</span> <span class="o">==</span> <span class="s2">&quot;black&quot;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">plays_black</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">color</span> <span class="o">==</span> <span class="s2">&quot;both&quot;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">plays_white</span> <span class="ow">or</span> <span class="n">plays_black</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="c1"># ── Filtre tournoi ─────────────────────────────────────────────────────</span>
+    <span class="k">if</span> <span class="n">pgn_filter</span><span class="o">.</span><span class="n">events</span><span class="p">:</span>
+        <span class="n">event</span> <span class="o">=</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Event&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">event</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">pgn_filter</span><span class="o">.</span><span class="n">events</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="c1"># ── Filtre date ────────────────────────────────────────────────────────</span>
+    <span class="n">date_str</span> <span class="o">=</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Date&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="c1"># Normalise &quot;????&quot; et dates partielles</span>
+    <span class="n">date_clean</span> <span class="o">=</span> <span class="n">date_str</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;?&quot;</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">pgn_filter</span><span class="o">.</span><span class="n">date_from</span><span class="p">:</span>
+        <span class="n">from_clean</span> <span class="o">=</span> <span class="n">pgn_filter</span><span class="o">.</span><span class="n">date_from</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;?&quot;</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">date_clean</span> <span class="o">&lt;</span> <span class="n">from_clean</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">if</span> <span class="n">pgn_filter</span><span class="o">.</span><span class="n">date_to</span><span class="p">:</span>
+        <span class="n">to_clean</span> <span class="o">=</span> <span class="n">pgn_filter</span><span class="o">.</span><span class="n">date_to</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;?&quot;</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">date_clean</span> <span class="o">&gt;</span> <span class="n">to_clean</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="c1"># ── Filtre résultat ────────────────────────────────────────────────────</span>
+    <span class="k">if</span> <span class="n">pgn_filter</span><span class="o">.</span><span class="n">results</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Result&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">pgn_filter</span><span class="o">.</span><span class="n">results</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="c1"># ── Filtre Elo adversaire ──────────────────────────────────────────────</span>
+    <span class="k">if</span> <span class="n">pgn_filter</span><span class="o">.</span><span class="n">min_opponent_elo</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">pgn_filter</span><span class="o">.</span><span class="n">player_name</span><span class="p">:</span>
+        <span class="n">name_lower</span> <span class="o">=</span> <span class="n">pgn_filter</span><span class="o">.</span><span class="n">player_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">plays_white</span> <span class="o">=</span> <span class="n">name_lower</span> <span class="ow">in</span> <span class="n">white</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+        <span class="n">opponent_elo_str</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;BlackElo&quot;</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">plays_white</span>
+            <span class="k">else</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;WhiteElo&quot;</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">opponent_elo</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">opponent_elo_str</span> <span class="ow">or</span> <span class="s2">&quot;0&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">opponent_elo</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">if</span> <span class="n">opponent_elo</span> <span class="o">&lt;</span> <span class="n">pgn_filter</span><span class="o">.</span><span class="n">min_opponent_elo</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="c1"># ── Filtre mots-clés libres ────────────────────────────────────────────</span>
+    <span class="k">if</span> <span class="n">pgn_filter</span><span class="o">.</span><span class="n">keywords</span><span class="p">:</span>
+        <span class="n">all_headers</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">headers</span><span class="o">.</span><span class="n">values</span><span class="p">())</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">k</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">all_headers</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">pgn_filter</span><span class="o">.</span><span class="n">keywords</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">return</span> <span class="kc">True</span></div>
+
+
+
+<div class="viewcode-block" id="apply_filter">
+<a class="viewcode-back" href="../../../api/chess_coach.bin.pgn_filter.html#chess_coach.bin.pgn_filter.apply_filter">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">apply_filter</span><span class="p">(</span>
+    <span class="n">games</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">chess</span><span class="o">.</span><span class="n">pgn</span><span class="o">.</span><span class="n">Game</span><span class="p">],</span>
+    <span class="n">pgn_filter</span><span class="p">:</span> <span class="n">PgnFilter</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">chess</span><span class="o">.</span><span class="n">pgn</span><span class="o">.</span><span class="n">Game</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Applique un filtre sur une liste de parties.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        games: Liste de parties à filtrer.</span>
+<span class="sd">        pgn_filter: Critères de sélection.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Sous-liste des parties satisfaisant tous les critères.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; apply_filter([], PgnFilter())</span>
+<span class="sd">        []</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">pgn_filter</span><span class="o">.</span><span class="n">is_active</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">games</span>
+
+    <span class="n">filtered</span> <span class="o">=</span> <span class="p">[</span><span class="n">g</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">games</span> <span class="k">if</span> <span class="n">matches</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">pgn_filter</span><span class="p">)]</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+        <span class="s2">&quot;apply_filter : </span><span class="si">%d</span><span class="s2">/</span><span class="si">%d</span><span class="s2"> parties retenues&quot;</span><span class="p">,</span>
+        <span class="nb">len</span><span class="p">(</span><span class="n">filtered</span><span class="p">),</span>
+        <span class="nb">len</span><span class="p">(</span><span class="n">games</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">filtered</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Matthieu Daviaud.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

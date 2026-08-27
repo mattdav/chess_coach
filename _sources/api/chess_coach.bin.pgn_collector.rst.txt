@@ -1,0 +1,7 @@
+chess\_coach.bin.pgn\_collector module
+======================================
+
+.. automodule:: chess_coach.bin.pgn_collector
+   :members:
+   :show-inheritance:
+   :undoc-members:

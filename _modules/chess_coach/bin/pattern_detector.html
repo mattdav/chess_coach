@@ -1,0 +1,260 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>chess_coach.bin.pattern_detector &mdash; chess_coach 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            chess_coach
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/modules.html">chess_coach</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">chess_coach</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">chess_coach.bin.pattern_detector</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for chess_coach.bin.pattern_detector</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Agrégation des GameReports en profil de faiblesses structuré.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">Counter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TypedDict</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">chess_coach.bin.analyzer</span><span class="w"> </span><span class="kn">import</span> <span class="n">GameReport</span><span class="p">,</span> <span class="n">MoveError</span>
+
+
+<div class="viewcode-block" id="WeaknessProfile">
+<a class="viewcode-back" href="../../../api/chess_coach.bin.pattern_detector.html#chess_coach.bin.pattern_detector.WeaknessProfile">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">WeaknessProfile</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Profil de faiblesses agrégé sur un ensemble de parties.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; p: WeaknessProfile = {</span>
+<span class="sd">        ...     &quot;total_games&quot;: 10,</span>
+<span class="sd">        ...     &quot;avg_acpl&quot;: 45.2,</span>
+<span class="sd">        ...     &quot;weakest_phase&quot;: &quot;middlegame&quot;,</span>
+<span class="sd">        ...     &quot;phase_breakdown&quot;: {&quot;opening&quot;: 3, &quot;middlegame&quot;: 8, &quot;endgame&quot;: 2},</span>
+<span class="sd">        ...     &quot;category_breakdown&quot;: {&quot;blunder&quot;: 2, &quot;mistake&quot;: 5, &quot;dubious&quot;: 4},</span>
+<span class="sd">        ...     &quot;problematic_openings&quot;: [(&quot;B30&quot;, &quot;Sicilian Defense&quot;, 4)],</span>
+<span class="sd">        ...     &quot;avg_cp_loss_by_phase&quot;: {</span>
+<span class="sd">        ...         &quot;opening&quot;: 75.0, &quot;middlegame&quot;: 180.0, &quot;endgame&quot;: 75.0</span>
+<span class="sd">        ...     },</span>
+<span class="sd">        ...     &quot;worst_positions&quot;: [],</span>
+<span class="sd">        ...     &quot;annotated_pgns&quot;: [],</span>
+<span class="sd">        ... }</span>
+<span class="sd">        &gt;&gt;&gt; p[&quot;weakest_phase&quot;]</span>
+<span class="sd">        &#39;middlegame&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">total_games</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">avg_acpl</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">weakest_phase</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">phase_breakdown</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>
+    <span class="n">category_breakdown</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>  <span class="c1"># blunder / mistake / dubious</span>
+    <span class="c1"># Tuples (code_ECO, nom_ouverture, nb_erreurs), triés par nb_erreurs desc.</span>
+    <span class="c1"># Le code ECO est toujours présent (source : header [ECO] de caissAI).</span>
+    <span class="c1"># Le nom est le header [Opening] si disponible, sinon le code ECO.</span>
+    <span class="n">problematic_openings</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span>
+    <span class="n">avg_cp_loss_by_phase</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>
+    <span class="n">worst_positions</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MoveError</span><span class="p">]</span>  <span class="c1"># 10 pires erreurs toutes parties</span>
+    <span class="n">annotated_pgns</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>  <span class="c1"># PGN annotés bruts (un par partie)</span></div>
+
+
+
+<div class="viewcode-block" id="build_weakness_profile">
+<a class="viewcode-back" href="../../../api/chess_coach.bin.pattern_detector.html#chess_coach.bin.pattern_detector.build_weakness_profile">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">build_weakness_profile</span><span class="p">(</span><span class="n">reports</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">GameReport</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">WeaknessProfile</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Agrège les rapports de parties en un profil de faiblesses.</span>
+
+<span class="sd">    Les ouvertures problématiques sont agrégées par **code ECO** (toujours</span>
+<span class="sd">    présent dans les annotations caissAI) et non par nom d&#39;ouverture</span>
+<span class="sd">    (absent dans les anciennes annotations).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        reports: Rapports issus de ``analyzer.report_from_pgn``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Profil structuré prêt à être consommé par ``coach.generate_weekly_plan``.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; from chess_coach.bin.analyzer import GameReport</span>
+<span class="sd">        &gt;&gt;&gt; profile = build_weakness_profile([])</span>
+<span class="sd">        &gt;&gt;&gt; profile[&quot;total_games&quot;]</span>
+<span class="sd">        0</span>
+<span class="sd">        &gt;&gt;&gt; profile[&quot;weakest_phase&quot;]</span>
+<span class="sd">        &#39;middlegame&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">reports</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">WeaknessProfile</span><span class="p">(</span>
+            <span class="n">total_games</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">avg_acpl</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">weakest_phase</span><span class="o">=</span><span class="s2">&quot;middlegame&quot;</span><span class="p">,</span>
+            <span class="n">phase_breakdown</span><span class="o">=</span><span class="p">{},</span>
+            <span class="n">category_breakdown</span><span class="o">=</span><span class="p">{},</span>
+            <span class="n">problematic_openings</span><span class="o">=</span><span class="p">[],</span>
+            <span class="n">avg_cp_loss_by_phase</span><span class="o">=</span><span class="p">{</span>
+                <span class="s2">&quot;opening&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+                <span class="s2">&quot;middlegame&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+                <span class="s2">&quot;endgame&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="n">worst_positions</span><span class="o">=</span><span class="p">[],</span>
+            <span class="n">annotated_pgns</span><span class="o">=</span><span class="p">[],</span>
+        <span class="p">)</span>
+
+    <span class="n">phase_errors</span><span class="p">:</span> <span class="n">Counter</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">()</span>
+    <span class="n">category_errors</span><span class="p">:</span> <span class="n">Counter</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">()</span>
+    <span class="c1"># Agrégation par code ECO : {eco: nb_erreurs}</span>
+    <span class="n">eco_errors</span><span class="p">:</span> <span class="n">Counter</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">()</span>
+    <span class="c1"># Nom associé à chaque ECO (dernier vu, ou le code lui-même si absent)</span>
+    <span class="n">eco_names</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">cp_loss_by_phase</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;opening&quot;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="s2">&quot;middlegame&quot;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="s2">&quot;endgame&quot;</span><span class="p">:</span> <span class="p">[],</span>
+    <span class="p">}</span>
+    <span class="n">all_errors</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MoveError</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">annotated_pgns</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">report</span> <span class="ow">in</span> <span class="n">reports</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">report</span><span class="o">.</span><span class="n">annotated_pgn</span><span class="p">:</span>
+            <span class="n">annotated_pgns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">report</span><span class="o">.</span><span class="n">annotated_pgn</span><span class="p">)</span>
+
+        <span class="n">eco</span> <span class="o">=</span> <span class="n">report</span><span class="o">.</span><span class="n">eco</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">eco</span><span class="p">:</span>
+            <span class="n">eco_errors</span><span class="p">[</span><span class="n">eco</span><span class="p">]</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">report</span><span class="o">.</span><span class="n">errors</span><span class="p">)</span>
+            <span class="c1"># Préférer le nom d&#39;ouverture au code brut quand disponible</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">report</span><span class="o">.</span><span class="n">opening</span>
+                <span class="k">if</span> <span class="n">report</span><span class="o">.</span><span class="n">opening</span> <span class="ow">and</span> <span class="n">report</span><span class="o">.</span><span class="n">opening</span> <span class="o">!=</span> <span class="s2">&quot;Unknown&quot;</span>
+                <span class="k">else</span> <span class="n">eco</span>
+            <span class="p">)</span>
+            <span class="n">eco_names</span><span class="p">[</span><span class="n">eco</span><span class="p">]</span> <span class="o">=</span> <span class="n">name</span>
+
+        <span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">report</span><span class="o">.</span><span class="n">errors</span><span class="p">:</span>
+            <span class="n">phase_errors</span><span class="p">[</span><span class="n">err</span><span class="o">.</span><span class="n">phase</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">category_errors</span><span class="p">[</span><span class="n">err</span><span class="o">.</span><span class="n">category</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">cp_loss_by_phase</span><span class="p">[</span><span class="n">err</span><span class="o">.</span><span class="n">phase</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err</span><span class="o">.</span><span class="n">cp_loss</span><span class="p">)</span>
+            <span class="n">all_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+
+    <span class="n">weakest_phase</span> <span class="o">=</span> <span class="n">phase_errors</span><span class="o">.</span><span class="n">most_common</span><span class="p">(</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">phase_errors</span> <span class="k">else</span> <span class="s2">&quot;middlegame&quot;</span>
+    <span class="n">avg_acpl</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">acpl</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">reports</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">reports</span><span class="p">)</span>
+    <span class="n">worst_positions</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">all_errors</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">e</span><span class="p">:</span> <span class="n">e</span><span class="o">.</span><span class="n">cp_loss</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)[:</span><span class="mi">10</span><span class="p">]</span>
+
+    <span class="c1"># Construire la liste (eco, nom, nb_erreurs) triée par nb_erreurs desc</span>
+    <span class="n">problematic_openings</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="n">eco</span><span class="p">,</span> <span class="n">eco_names</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">eco</span><span class="p">,</span> <span class="n">eco</span><span class="p">),</span> <span class="n">count</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">eco</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="n">eco_errors</span><span class="o">.</span><span class="n">most_common</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="n">profile</span> <span class="o">=</span> <span class="n">WeaknessProfile</span><span class="p">(</span>
+        <span class="n">total_games</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">reports</span><span class="p">),</span>
+        <span class="n">avg_acpl</span><span class="o">=</span><span class="nb">round</span><span class="p">(</span><span class="n">avg_acpl</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="n">weakest_phase</span><span class="o">=</span><span class="n">weakest_phase</span><span class="p">,</span>
+        <span class="n">phase_breakdown</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">phase_errors</span><span class="p">),</span>
+        <span class="n">category_breakdown</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">category_errors</span><span class="p">),</span>
+        <span class="n">problematic_openings</span><span class="o">=</span><span class="n">problematic_openings</span><span class="p">,</span>
+        <span class="n">avg_cp_loss_by_phase</span><span class="o">=</span><span class="p">{</span>
+            <span class="n">phase</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">losses</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">losses</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">losses</span> <span class="k">else</span> <span class="mf">0.0</span>
+            <span class="k">for</span> <span class="n">phase</span><span class="p">,</span> <span class="n">losses</span> <span class="ow">in</span> <span class="n">cp_loss_by_phase</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">},</span>
+        <span class="n">worst_positions</span><span class="o">=</span><span class="n">worst_positions</span><span class="p">,</span>
+        <span class="n">annotated_pgns</span><span class="o">=</span><span class="n">annotated_pgns</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+        <span class="s2">&quot;build_weakness_profile : </span><span class="si">%d</span><span class="s2"> parties — ACPL </span><span class="si">%.1f</span><span class="s2"> — phase faible : </span><span class="si">%s</span><span class="s2"> &quot;</span>
+        <span class="s2">&quot;— blunders </span><span class="si">%d</span><span class="s2"> / mistakes </span><span class="si">%d</span><span class="s2"> / dubious </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="n">profile</span><span class="p">[</span><span class="s2">&quot;total_games&quot;</span><span class="p">],</span>
+        <span class="n">profile</span><span class="p">[</span><span class="s2">&quot;avg_acpl&quot;</span><span class="p">],</span>
+        <span class="n">profile</span><span class="p">[</span><span class="s2">&quot;weakest_phase&quot;</span><span class="p">],</span>
+        <span class="n">category_errors</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;blunder&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="n">category_errors</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;mistake&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="n">category_errors</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;dubious&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">profile</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Matthieu Daviaud.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

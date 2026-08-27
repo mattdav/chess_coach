@@ -1,0 +1,7 @@
+chess\_coach.bin.podcast\_generator module
+==========================================
+
+.. automodule:: chess_coach.bin.podcast_generator
+   :members:
+   :show-inheritance:
+   :undoc-members:
