@@ -7,6 +7,7 @@ from dataclasses import asdict
 from typing import Any, TypedDict
 
 import anthropic
+from anthropic.types import Message, TextBlock
 
 from chess_coach.bin.gm_games import OpeningStudy
 from chess_coach.bin.pattern_detector import WeaknessProfile
@@ -20,6 +21,12 @@ sans commentaires."""
 
 # Modèle Claude par défaut, surchargeable via ANTHROPIC_MODEL dans .env.
 _DEFAULT_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-5")
+
+# Budget de génération. Doit couvrir le JSON du plan (~2000 tokens) ET le
+# raisonnement interne : les modèles récents émettent des blocs `thinking`
+# par défaut, qui se prélèvent sur ce même budget. Avec 4096, le budget
+# pouvait être épuisé avant le premier bloc texte.
+_MAX_TOKENS = 16000
 
 _client: anthropic.Anthropic | None = None
 
@@ -153,6 +160,47 @@ def _serialize_profile(profile: WeaknessProfile) -> dict[str, Any]:
     return serializable
 
 
+def _extract_text(response: Message) -> str:
+    """Concatène les blocs texte d'une réponse Claude.
+
+    La réponse peut contenir d'autres types de blocs (``thinking``,
+    ``redacted_thinking``, ``tool_use``) qui précèdent le texte : on ne peut
+    donc pas se contenter de ``response.content[0]``.
+
+    Args:
+        response: Réponse brute de l'API Messages.
+
+    Returns:
+        Le texte concaténé, débarrassé des espaces de bord.
+    """
+    return "\n".join(
+        block.text for block in response.content if isinstance(block, TextBlock)
+    ).strip()
+
+
+def _strip_code_fence(raw: str) -> str:
+    """Retire un éventuel encadrement en bloc de code Markdown autour du JSON.
+
+    Args:
+        raw: Texte brut renvoyé par Claude.
+
+    Returns:
+        Le contenu sans les délimiteurs de bloc de code.
+
+    Examples:
+        >>> _strip_code_fence('```json\\n{"a": 1}\\n```')
+        '{"a": 1}'
+        >>> _strip_code_fence('{"a": 1}')
+        '{"a": 1}'
+    """
+    stripped = raw.strip()
+    if not stripped.startswith("```"):
+        return stripped
+    # Retire la ligne d'ouverture puis la clôture finale.
+    stripped = stripped.split("\n", 1)[1] if "\n" in stripped else stripped[3:]
+    return stripped.rstrip("`").rstrip()
+
+
 def generate_weekly_plan(
     profile: WeaknessProfile,
     player_elo: int,
@@ -181,6 +229,8 @@ def generate_weekly_plan(
 
     Raises:
         anthropic.APIError: En cas d'erreur API Claude.
+        ValueError: Si la réponse est tronquée (``max_tokens``) ou ne
+            contient aucun bloc texte.
         json.JSONDecodeError: Si Claude retourne du JSON invalide.
 
     Examples:
@@ -232,26 +282,34 @@ def generate_weekly_plan(
 
     response = _get_client().messages.create(
         model=model,
-        max_tokens=4096,
+        max_tokens=_MAX_TOKENS,
         system=_COACH_SYSTEM,
         messages=[{"role": "user", "content": prompt}],
     )
 
+    logging.debug(
+        "generate_weekly_plan : modèle=%s stop_reason=%s blocs=%s usage=%s",
+        model,
+        response.stop_reason,
+        [block.type for block in response.content],
+        response.usage,
+    )
+
     if response.stop_reason == "max_tokens":
         raise ValueError(
-            "Réponse Claude tronquée (max_tokens atteint) — augmenter "
-            "max_tokens dans generate_weekly_plan()."
+            f"Réponse Claude tronquée (max_tokens={_MAX_TOKENS} atteint, "
+            f"{response.usage.output_tokens} tokens produits) — augmenter "
+            "_MAX_TOKENS dans coach.py."
         )
 
-    first_block = response.content[0]
-    if not hasattr(first_block, "text"):
-        raise ValueError("Réponse Claude inattendue : pas de bloc texte.")
-    raw: str = first_block.text
-    stripped = raw.strip()
-    if stripped.startswith("```"):
-        stripped = stripped.split("\n", 1)[1] if "\n" in stripped else stripped[3:]
-        stripped = stripped.rstrip("`").rstrip()
+    raw = _extract_text(response)
+    if not raw:
+        raise ValueError(
+            "Réponse Claude inattendue : pas de bloc texte "
+            f"(modèle={model}, stop_reason={response.stop_reason}, "
+            f"blocs={[block.type for block in response.content]})."
+        )
 
-    plan: TrainingPlan = json.loads(stripped)
+    plan: TrainingPlan = json.loads(_strip_code_fence(raw))
     logging.info("generate_weekly_plan : thème '%s'", plan.get("week_theme", "?"))
     return plan
