@@ -224,6 +224,8 @@ Lichess. Si fourni, enrich le prompt avec les exemples de GM.</p></li>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">
 <li><p><strong>anthropic.APIError</strong> – En cas d’erreur API Claude.</p></li>
+<li><p><strong>ValueError</strong> – Si la réponse est tronquée (<code class="docutils literal notranslate"><span class="pre">max_tokens</span></code>) ou ne
+    contient aucun bloc texte.</p></li>
 <li><p><strong>json.JSONDecodeError</strong> – Si Claude retourne du JSON invalide.</p></li>
 </ul>
 </dd>

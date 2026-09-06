@@ -78,6 +78,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">TypedDict</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">anthropic</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">anthropic.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span><span class="p">,</span> <span class="n">TextBlock</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">chess_coach.bin.gm_games</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpeningStudy</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">chess_coach.bin.pattern_detector</span><span class="w"> </span><span class="kn">import</span> <span class="n">WeaknessProfile</span>
@@ -91,6 +92,12 @@
 
 <span class="c1"># Modèle Claude par défaut, surchargeable via ANTHROPIC_MODEL dans .env.</span>
 <span class="n">_DEFAULT_MODEL</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ANTHROPIC_MODEL&quot;</span><span class="p">,</span> <span class="s2">&quot;claude-sonnet-4-5&quot;</span><span class="p">)</span>
+
+<span class="c1"># Budget de génération. Doit couvrir le JSON du plan (~2000 tokens) ET le</span>
+<span class="c1"># raisonnement interne : les modèles récents émettent des blocs `thinking`</span>
+<span class="c1"># par défaut, qui se prélèvent sur ce même budget. Avec 4096, le budget</span>
+<span class="c1"># pouvait être épuisé avant le premier bloc texte.</span>
+<span class="n">_MAX_TOKENS</span> <span class="o">=</span> <span class="mi">16000</span>
 
 <span class="n">_client</span><span class="p">:</span> <span class="n">anthropic</span><span class="o">.</span><span class="n">Anthropic</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 
@@ -233,6 +240,47 @@
     <span class="k">return</span> <span class="n">serializable</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_extract_text</span><span class="p">(</span><span class="n">response</span><span class="p">:</span> <span class="n">Message</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Concatène les blocs texte d&#39;une réponse Claude.</span>
+
+<span class="sd">    La réponse peut contenir d&#39;autres types de blocs (``thinking``,</span>
+<span class="sd">    ``redacted_thinking``, ``tool_use``) qui précèdent le texte : on ne peut</span>
+<span class="sd">    donc pas se contenter de ``response.content[0]``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        response: Réponse brute de l&#39;API Messages.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Le texte concaténé, débarrassé des espaces de bord.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">block</span><span class="o">.</span><span class="n">text</span> <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">content</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">TextBlock</span><span class="p">)</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_strip_code_fence</span><span class="p">(</span><span class="n">raw</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Retire un éventuel encadrement en bloc de code Markdown autour du JSON.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        raw: Texte brut renvoyé par Claude.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Le contenu sans les délimiteurs de bloc de code.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; _strip_code_fence(&#39;```json\\n{&quot;a&quot;: 1}\\n```&#39;)</span>
+<span class="sd">        &#39;{&quot;a&quot;: 1}&#39;</span>
+<span class="sd">        &gt;&gt;&gt; _strip_code_fence(&#39;{&quot;a&quot;: 1}&#39;)</span>
+<span class="sd">        &#39;{&quot;a&quot;: 1}&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">stripped</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">stripped</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;```&quot;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">stripped</span>
+    <span class="c1"># Retire la ligne d&#39;ouverture puis la clôture finale.</span>
+    <span class="n">stripped</span> <span class="o">=</span> <span class="n">stripped</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="ow">in</span> <span class="n">stripped</span> <span class="k">else</span> <span class="n">stripped</span><span class="p">[</span><span class="mi">3</span><span class="p">:]</span>
+    <span class="k">return</span> <span class="n">stripped</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;`&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span>
+
+
 <div class="viewcode-block" id="generate_weekly_plan">
 <a class="viewcode-back" href="../../../api/chess_coach.bin.coach.html#chess_coach.bin.coach.generate_weekly_plan">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">generate_weekly_plan</span><span class="p">(</span>
@@ -263,6 +311,8 @@
 
 <span class="sd">    Raises:</span>
 <span class="sd">        anthropic.APIError: En cas d&#39;erreur API Claude.</span>
+<span class="sd">        ValueError: Si la réponse est tronquée (``max_tokens``) ou ne</span>
+<span class="sd">            contient aucun bloc texte.</span>
 <span class="sd">        json.JSONDecodeError: Si Claude retourne du JSON invalide.</span>
 
 <span class="sd">    Examples:</span>
@@ -314,27 +364,35 @@
 
     <span class="n">response</span> <span class="o">=</span> <span class="n">_get_client</span><span class="p">()</span><span class="o">.</span><span class="n">messages</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
         <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
-        <span class="n">max_tokens</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span>
+        <span class="n">max_tokens</span><span class="o">=</span><span class="n">_MAX_TOKENS</span><span class="p">,</span>
         <span class="n">system</span><span class="o">=</span><span class="n">_COACH_SYSTEM</span><span class="p">,</span>
         <span class="n">messages</span><span class="o">=</span><span class="p">[{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">prompt</span><span class="p">}],</span>
     <span class="p">)</span>
 
+    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+        <span class="s2">&quot;generate_weekly_plan : modèle=</span><span class="si">%s</span><span class="s2"> stop_reason=</span><span class="si">%s</span><span class="s2"> blocs=</span><span class="si">%s</span><span class="s2"> usage=</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">stop_reason</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">block</span><span class="o">.</span><span class="n">type</span> <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">content</span><span class="p">],</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">usage</span><span class="p">,</span>
+    <span class="p">)</span>
+
     <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">stop_reason</span> <span class="o">==</span> <span class="s2">&quot;max_tokens&quot;</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="s2">&quot;Réponse Claude tronquée (max_tokens atteint) — augmenter &quot;</span>
-            <span class="s2">&quot;max_tokens dans generate_weekly_plan().&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Réponse Claude tronquée (max_tokens=</span><span class="si">{</span><span class="n">_MAX_TOKENS</span><span class="si">}</span><span class="s2"> atteint, &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">usage</span><span class="o">.</span><span class="n">output_tokens</span><span class="si">}</span><span class="s2"> tokens produits) — augmenter &quot;</span>
+            <span class="s2">&quot;_MAX_TOKENS dans coach.py.&quot;</span>
         <span class="p">)</span>
 
-    <span class="n">first_block</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">content</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">first_block</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Réponse Claude inattendue : pas de bloc texte.&quot;</span><span class="p">)</span>
-    <span class="n">raw</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">first_block</span><span class="o">.</span><span class="n">text</span>
-    <span class="n">stripped</span> <span class="o">=</span> <span class="n">raw</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">stripped</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;```&quot;</span><span class="p">):</span>
-        <span class="n">stripped</span> <span class="o">=</span> <span class="n">stripped</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="ow">in</span> <span class="n">stripped</span> <span class="k">else</span> <span class="n">stripped</span><span class="p">[</span><span class="mi">3</span><span class="p">:]</span>
-        <span class="n">stripped</span> <span class="o">=</span> <span class="n">stripped</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;`&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span>
+    <span class="n">raw</span> <span class="o">=</span> <span class="n">_extract_text</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">raw</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Réponse Claude inattendue : pas de bloc texte &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;(modèle=</span><span class="si">{</span><span class="n">model</span><span class="si">}</span><span class="s2">, stop_reason=</span><span class="si">{</span><span class="n">response</span><span class="o">.</span><span class="n">stop_reason</span><span class="si">}</span><span class="s2">, &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;blocs=</span><span class="si">{</span><span class="p">[</span><span class="n">block</span><span class="o">.</span><span class="n">type</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">block</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">response</span><span class="o">.</span><span class="n">content</span><span class="p">]</span><span class="si">}</span><span class="s2">).&quot;</span>
+        <span class="p">)</span>
 
-    <span class="n">plan</span><span class="p">:</span> <span class="n">TrainingPlan</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">stripped</span><span class="p">)</span>
+    <span class="n">plan</span><span class="p">:</span> <span class="n">TrainingPlan</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">_strip_code_fence</span><span class="p">(</span><span class="n">raw</span><span class="p">))</span>
     <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;generate_weekly_plan : thème &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span><span class="p">,</span> <span class="n">plan</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;week_theme&quot;</span><span class="p">,</span> <span class="s2">&quot;?&quot;</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">plan</span></div>
 
